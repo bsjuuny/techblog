@@ -11,11 +11,11 @@ toc: true
  - 경기 유한대학 컴퓨터 정보학과 졸업
 
 ## What I did
- 1. 앤서스랩코리아에서 GGCORE 서비스의 미국, 영국, 러시아, 중국, 독일, 벨기에를 기점으로 여러 국가를 대상으로 프론트엔드 개발 운영
- 2. 현진아이씨티에서 코인제스트 회원 파트(KYC, Join, Step) 부분을 프론트, 백엔드 개발 운영
- 3. 웹젠에서 서비스하는 국내 게임의 모든 사이트 웹 퍼블리싱 개발 운영
- 4. 온오프믹스에서 서비스 하는 모든 사이트 웹 퍼블리싱 개발 운영
- 5. 한빛소프트에서 서비스하는 국내, 해외(북미, 일본) 오피셜 사이트 웹 퍼블리싱 개발 운영
+ 1. KB Star 뱅킹 운영(웹퍼블리셔/ 스뱅, 인뱅, 모웹)
+ 2. 기아 FOD(현대오토에버) 사이트 개발
+ 3. LG전자 글로벌 운영 상시개선 및 딜러샵 개발
+ 4. 앤서스랩코리아에서 GGCORE 서비스의 미국, 영국, 러시아, 중국, 독일, 벨기에를 기점으로 여러 국가를 대상으로 프론트엔드 개발 운영
+ 5. 현진아이씨티에서 코인제스트 회원 파트(KYC, Join, Step) 부분을 프론트, 백엔드 개발 운영
 
 ## History
  <ol>
@@ -180,28 +180,6 @@ toc: true
 <details>
 <summary style="cursor: pointer;">Nsuslab</summary>
 <div markdown="1">
-<ol>
-  <li>
-    <dl>
-      <dt>Nsus 개발활동 내역</dt>
-      <dd>
-        <img data-action="zoom" src='{{ "/techblog/assets/images/nsuslab/pr1.png" | relative_url }}' alt='absolute'><br>
-        <img data-action="zoom" src='{{ "/techblog/assets/images/nsuslab/git-2021.png" | relative_url }}' alt='absolute'><br>
-        <img data-action="zoom" src='{{ "/techblog/assets/images/nsuslab/git-2020.png" | relative_url }}' alt='absolute'><br>
-      </dd>
-    </dl>
-  </li>
-  <li>
-    <dl>
-      <dt>Nsus 운영</dt>
-      <dd>
-        <img data-action="zoom" src='{{ "/assets/images/nsuslab/backoffice.png" | relative_url }}' alt=''><br>
-        <img data-action="zoom" src='{{ "/assets/images/nsuslab/myinfo.png" | relative_url }}' alt=''><br>
-        <img data-action="zoom" src='{{ "/assets/images/nsuslab/deposit.png" | relative_url }}' alt=''>
-      </dd>
-    </dl>
-  </li>
-</ol>
 1. Nsus 개발활동 내역
   * Git Pull Request 2021  
   ![Git Pull Request](/techblog/assets/images/nsuslab/pr1.png)  
@@ -257,4 +235,4 @@ toc: true
  - 소통  
  웹퍼블리셔 또는 프론트엔드 엔지니어로써 기획자, 디자이너, 개발자들과 소통을 해야 하는 경우들이 많았습니다. 이런 소통이 잘못되게 되면 작업물을 못 쓰게 되는 예도 있고 재작업을 진행해야 하는 경우들이 발생해서 될 수 있으면 소통에 많은 노력을 하고 있습니다.  
  - 발전  
- 프로젝트를 진행하기 위해서나 개인의 발전을 위하여 학습을 진행하는 때도 있었습니다. 신입때는 잘 모르는 부분을 채우기 위해 HTML, CSS, Jquery 학습을 진행하기도 하고 개인의 발전을 위하여 vue.js를 이용해 암호화폐 거래소 개발 및 운영, 현재는 angular.js 및 angular를 이용해 홀덤게임 사용자 화면 및 백오프스를 개발하고 있습니다.  
+ 프로젝트를 진행하기 위해서나 개인의 발전을 위하여 학습을 진행하는 때도 있었습니다. 신입때는 잘 모르는 부분을 채우기 위해 HTML, CSS, Jquery 학습을 진행하기도 하고 개인의 발전을 위하여 vue.js를 이용해 암호화폐 거래소 개발, angular.js 및 angular를 이용해 홀덤게임 사용자 화면 및 백오피스를 개발, react 프로젝트 또한 진행하고 있습니다.  
