@@ -50,7 +50,7 @@ toc: true
       <dt>LG전자 글로벌 운영 상시개선</dt>
       <dd>
         * 2023.10 ~ 2024.07<br>
-        * AEM, React
+        * AEM, React, GraphQL
       </dd>
       <dt>한화생명 비대면 인증 고도화</dt>
       <dd>
@@ -60,7 +60,7 @@ toc: true
       <dt>LG전자 글로벌 Dealer shop</dt>
       <dd>
         * AEM react 2025.02 ~ 2025.04<br>
-        * AEM, React, Java
+        * AEM, React, Java, GraphQL
       </dd>
     </dl>
   </li>
