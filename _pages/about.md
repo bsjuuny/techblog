@@ -195,9 +195,9 @@ toc: true
     <dl>
       <dt>Nsus 운영</dt>
       <dd>
-        <img data-action="zoom" src='{{ "/assets/images/nsuslab/backoffice.png" | relative_url }}' alt='absolute'><br>
-        <img data-action="zoom" src='{{ "/assets/images/nsuslab/myinfo.png" | relative_url }}' alt='absolute'><br>
-        <img data-action="zoom" src='{{ "/assets/images/nsuslab/deposit.png" | relative_url }}' alt='absolute'><br>
+        <img data-action="zoom" src='{{ "/assets/images/nsuslab/backoffice.png" | relative_url }}' alt=''><br>
+        <img data-action="zoom" src='{{ "/assets/images/nsuslab/myinfo.png" | relative_url }}' alt=''><br>
+        <img data-action="zoom" src='{{ "/assets/images/nsuslab/deposit.png" | relative_url }}' alt=''>
       </dd>
     </dl>
   </li>
