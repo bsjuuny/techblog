@@ -18,6 +18,7 @@ toc: true
  5. 한빛소프트에서 서비스하는 국내, 해외(북미, 일본) 오피셜 사이트 웹 퍼블리싱 개발 운영
 
 ## History
+ <h2>앤서스랩</h2>
  - 앤서스랩 백오피스, 사용자 화면 개발 및 운영  
    * 2020.05 ~ 2021.09
    * ANGULAR.JS, ANGULAR, HTML, CSS, TYPESCRIPT, SCSS, GITHUB, CODE REVIEW
