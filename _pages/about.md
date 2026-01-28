@@ -20,62 +20,188 @@ toc: true
 ## History
  <ol>
   <li>
+    <h3>유플리트</h3>
+    <dl>
+      <dt>KB Star 뱅킹 운영</dt>
+      <dd>
+        * 2025.05 ~ 2026.02<br>
+        * HTML, CSS, Js, Jquery
+      </dd>
+    </dl>
+  </li>
+  <li>
+    <h3>BRIT</h3>
+    <dl>
+      <dt>자원순환보증금센터</dt>
+      <dd>
+        * 1회용컵 반환 보증금 프로젝트 21.11 ~ 22.05
+        * HTML, CSS, Js, Jquery, Websquare5
+      </dd>
+      <dt>유니에스</dt>
+      <dd>
+        * 유니에스 홈페이지 반응형 퍼블리싱 22.01 ~ 22.04
+        * HTML, CSS, Js, Jquery
+      </dd>
+      <dt>현대오토에버</dt>
+      <dd>
+        * 기아 커넥트 스토어 반응형 프론트엔드 22.06 ~ 23.07
+        * HTML, CSS, Js, Jquery
+      </dd>
+      <dt>LG전자 글로벌 운영 상시개선</dt>
+      <dd>
+        * 23.10 ~ 24.07
+        * AEM, React
+      </dd>
+      <dt>한화생명 비대면 인증 고도화</dt>
+      <dd>
+        * 안면인식 특징점 추출 24.09 ~ 25.01
+        * React, OCR(posicube)
+      </dd>
+      <dt>LG전자 글로벌 Dealer shop</dt>
+      <dd>
+        * AEM react 25.02 ~ 25.04
+        * AEM, React, Java
+      </dd>
+    </dl>
+  </li>
+  <li>
     <h3>앤서스랩</h3>
     <dl>
       <dt>백오피스, 사용자 화면 개발 및 운영</dt>
       <dd>
-        * 2020.05 ~ 2021.09
+        * 2020.05 ~ 2021.09<br>
         * ANGULAR.JS, ANGULAR, HTML, CSS, TYPESCRIPT, SCSS, GITHUB, CODE REVIEW
       </dd>
     </dl>
   </li>
   <li>
-    <h3></h3>
+    <h3>가온소프트</h3>
     <dl>
-      <dt></dt>
-      <dd></dd>
+      <dt>그룹웨어 화면 개발</dt>
+      <dd>
+        * 2019.11 ~ 2020.03<br>
+        * HTML, CSS, JAVASCRIPT, JAVA, VUE.JS, SPRING BOOT, TYPESCRIPT, SVN
+      </dd>
+    </dl>
+  </li>
+  <li>
+    <h3>현진ICT</h3>
+    <dl>
+      <dt>코인제스트 회원 파트 개발 및 운영</dt>
+      <dd>
+        * 2017.12 ~ 2019.04<br>
+        * HTML, CSS, JAVASCRIPT, JAVA, SPRING BOOT, SWAGGER, MYBATIS, VUE.JS, TYPESCRIPT, SVN
+      </dd>
+    </dl>
+  </li>
+  <li>
+    <h3>그린스테이지랩</h3>
+    <dl>
+      <dt>Kai 코인 개발 및 운영</dt>
+      <dd>
+        * 2017.07 ~ 2017.12<br>
+        * HTML, CSS, JAVASCRIPT, VUE.JS, SVN
+      </dd>
+    </dl>
+  </li>
+  <li>
+    <h3>서울옥션블루</h3>
+    <dl>
+      <dt>서울옥션블루 개발 및 운영</dt>
+      <dd>
+        * 2017.07 ~ 2017.12<br>
+        * HTML, CSS, JAVASCRIPT, VUE.JS, SVN
+      </dd>
+    </dl>
+  </li>
+  <li>
+    <h3>멋집</h3>
+    <dl>
+      <dt>HOT SOURCE 개발 및 운영</dt>
+      <dd>
+        * 2016.05 ~ 2016.12<br>
+        * HTML, CSS, JAVASCRIPT, JAVA, SPRING BOOT, SVN
+      </dd>
+    </dl>
+  </li>
+  <li>
+    <h3>웹젠</h3>
+    <dl>
+      <dt>웹젠 서비스(국내 전체) 및 이벤트 페이지 개발 및 운영</dt>
+      <dd>
+        * 2015.08 ~ 2016.06<br>
+        * HTML, CSS, JAVASCRIPT, SVN
+      </dd>
+    </dl>
+  </li>
+  <li>
+    <h3>온오프믹스</h3>
+    <dl>
+      <dt>온오프믹스 사이트 개발 및 운영</dt>
+      <dd>
+        * 2014.07 ~ 2015.07<br>
+        * HTML, CSS, JAVASCRIPT, SVN
+      </dd>
+    </dl>
+  </li>
+  <li>
+    <h3>한빛소프트</h3>
+    <dl>
+      <dt>한빛온 국내, 해외 사이트 개발 및 운영</dt>
+      <dd>
+        * 2011.03 ~ 2013.03<br>
+        * HTML, CSS, JAVASCRIPT, SVN, 파트장
+      </dd>
+    </dl>
+  </li>
+  <li>
+    <h3>아이파트너즈</h3>
+    <dl>
+      <dt>현대카드 사이트 개발 및 운영</dt>
+      <dd>
+        * 2010.05 ~ 2011.02<br>
+        * HTML, CSS, JAVASCRIPT, SVN
+      </dd>
+    </dl>
+  </li>
+  <li>
+    <h3>플로그램</h3>
+    <dl>
+      <dt>웹 에이전시 사이트 개발 및 운영</dt>
+      <dd>
+        * 2009.05 ~ 2010.05<br>
+        * HTML, CSS, JAVASCRIPT, SVN
+      </dd>
     </dl>
   </li>
  </ol>
- <h3>앤서스랩</h3>
- - 앤서스랩 백오피스, 사용자 화면 개발 및 운영
-   * 2020.05 ~ 2021.09
-   * ANGULAR.JS, ANGULAR, HTML, CSS, TYPESCRIPT, SCSS, GITHUB, CODE REVIEW
- - 가온소프트 그룹웨어 화면 개발
-   * 2019.11 ~ 2020.03
-   * HTML, CSS, JAVASCRIPT, JAVA, VUE.JS, SPRING BOOT, TYPESCRIPT, SVN
- - 코인제스트 회원 파트 개발 및 운영  
-   * 2017.12 ~ 2019.04
-   * HTML, CSS, JAVASCRIPT, JAVA, SPRING BOOT, SWAGGER, MYBATIS, VUE.JS, TYPESCRIPT, SVN
- - 그린스테이지랩 Kai 코인 개발 및 운영  
-   * 2017.07 ~ 2017.12
-   * HTML, CSS, JAVASCRIPT, VUE.JS, SVN
- - 서울옥션블루 개발 및 운영  
-   * 2017.07 ~ 2017.12
-   * HTML, CSS, JAVASCRIPT, VUE.JS, SVN
- - 멋집 HOT SOURCE 개발 및 운영  
-   * 2016.05 ~ 2016.12
-   * HTML, CSS, JAVASCRIPT, JAVA, SPRING BOOT, SVN
- - 웹젠 서비스(국내 전체) 및 이벤트 페이지 개발 및 운영  
-   * 2015.08 ~ 2016.06
-   * HTML, CSS, JAVASCRIPT, SVN
- - 온오프믹스 사이트 개발 및 운영  
-   * 2014.07 ~ 2015.07
-   * HTML, CSS, JAVASCRIPT, SVN
- - 한빛소프트 국내, 해외 사이트 개발 및 운영  
-   * 2011.03 ~ 2013.03
-   * HTML, CSS, JAVASCRIPT, SVN, 파트장
- - 아이파트너즈 현대카드 사이트 개발 및 운영 
-   * 2010.05 ~ 2011.02
-   * HTML, CSS, JAVASCRIPT, SVN
- - 플로그램 웹 에이전시 사이트 개발 및 운영  
-   * 2009.05 ~ 2010.05
-   * HTML, CSS, JAVASCRIPT, SVN)  
 
 ## Project
 <details>
 <summary style="cursor: pointer;">Nsuslab</summary>
 <div markdown="1">
+<ol>
+  <li>
+    <dl>
+      <dt>Nsus 개발활동 내역</dt>
+      <dd>
+        <img data-action="zoom" src='{{ "/techblog/assets/images/nsuslab/pr1.png" | relative_url }}' alt='absolute'><br>
+        <img data-action="zoom" src='{{ "/techblog/assets/images/nsuslab/git-2021.png" | relative_url }}' alt='absolute'><br>
+        <img data-action="zoom" src='{{ "/techblog/assets/images/nsuslab/git-2020.png" | relative_url }}' alt='absolute'><br>
+      </dd>
+    </dl>
+  </li>
+  <li>
+    <dl>
+      <dt>Nsus 운영</dt>
+      <dd>
+        <img data-action="zoom" src='{{ "/techblog/assets/images/nsuslab/backoffice.png" | relative_url }}' alt='absolute'><br>
+        <img data-action="zoom" src='{{ "/techblog/assets/images/nsuslab/myinfo.png" | relative_url }}' alt='absolute'><br>
+        <img data-action="zoom" src='{{ "/techblog/assets/images/nsuslab/deposit.png" | relative_url }}' alt='absolute'><br>
+      </dd>
+    </dl>
+  </li>
+</ol>
 1. Nsus 개발활동 내역
   * Git Pull Request 2021  
   ![Git Pull Request](/techblog/assets/images/nsuslab/pr1.png)  
