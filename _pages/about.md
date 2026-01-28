@@ -34,32 +34,32 @@ toc: true
     <dl>
       <dt>자원순환보증금센터</dt>
       <dd>
-        * 1회용컵 반환 보증금 프로젝트 21.11 ~ 22.05
+        * 1회용컵 반환 보증금 프로젝트 2021.11 ~ 2022.05<br>
         * HTML, CSS, Js, Jquery, Websquare5
       </dd>
       <dt>유니에스</dt>
       <dd>
-        * 유니에스 홈페이지 반응형 퍼블리싱 22.01 ~ 22.04
+        * 유니에스 홈페이지 반응형 퍼블리싱 2022.01 ~ 2022.04<br>
         * HTML, CSS, Js, Jquery
       </dd>
       <dt>현대오토에버</dt>
       <dd>
-        * 기아 커넥트 스토어 반응형 프론트엔드 22.06 ~ 23.07
+        * 기아 커넥트 스토어 반응형 프론트엔드 2022.06 ~ 2023.07<br>
         * HTML, CSS, Js, Jquery
       </dd>
       <dt>LG전자 글로벌 운영 상시개선</dt>
       <dd>
-        * 23.10 ~ 24.07
+        * 2023.10 ~ 2024.07<br>
         * AEM, React
       </dd>
       <dt>한화생명 비대면 인증 고도화</dt>
       <dd>
-        * 안면인식 특징점 추출 24.09 ~ 25.01
+        * 안면인식 특징점 추출 2024.09 ~ 2025.01<br>
         * React, OCR(posicube)
       </dd>
       <dt>LG전자 글로벌 Dealer shop</dt>
       <dd>
-        * AEM react 25.02 ~ 25.04
+        * AEM react 2025.02 ~ 2025.04<br>
         * AEM, React, Java
       </dd>
     </dl>
@@ -195,9 +195,9 @@ toc: true
     <dl>
       <dt>Nsus 운영</dt>
       <dd>
-        <img data-action="zoom" src='{{ "/techblog/assets/images/nsuslab/backoffice.png" | relative_url }}' alt='absolute'><br>
-        <img data-action="zoom" src='{{ "/techblog/assets/images/nsuslab/myinfo.png" | relative_url }}' alt='absolute'><br>
-        <img data-action="zoom" src='{{ "/techblog/assets/images/nsuslab/deposit.png" | relative_url }}' alt='absolute'><br>
+        <img data-action="zoom" src='{{ "/assets/images/nsuslab/backoffice.png" | relative_url }}' alt='absolute'><br>
+        <img data-action="zoom" src='{{ "/assets/images/nsuslab/myinfo.png" | relative_url }}' alt='absolute'><br>
+        <img data-action="zoom" src='{{ "/assets/images/nsuslab/deposit.png" | relative_url }}' alt='absolute'><br>
       </dd>
     </dl>
   </li>
