@@ -2,7 +2,7 @@
 permalink: /about/
 title: "About"
 search: true
-last_modified_at: 2021-07-17T19:54:07+09:00
+# last_modified_at: 2021-07-17T19:54:07+09:00
 toc: true
 ---
 
