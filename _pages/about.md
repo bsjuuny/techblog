@@ -8,7 +8,9 @@ toc: true
 
 ## Education
  - 서울 용산고등학교 졸업
+ -- Yongsan High School, graduated.
  - 경기 유한대학 컴퓨터 정보학과 졸업
+ -- uhan University, Department of Computer Information, graduated.
 
 ## What I did
  1. KB Star 뱅킹 운영(웹퍼블리셔/ 스뱅, 인뱅, 모웹)
