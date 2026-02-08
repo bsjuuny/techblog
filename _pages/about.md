@@ -7,17 +7,15 @@ toc: true
 ---
 
 ## Education
- - 서울 용산고등학교 졸업
- -- Yongsan High School, graduated.
- - 경기 유한대학 컴퓨터 정보학과 졸업
- -- uhan University, Department of Computer Information, graduated.
+ - 서울 용산고등학교 졸업 - Yongsan High School, graduated.
+ - 경기 유한대학 컴퓨터 정보학과 졸업 - uhan University, Department of Computer Information, graduated.
 
 ## What I did
- 1. KB Star 뱅킹 운영(웹퍼블리셔/ 스뱅, 인뱅, 모웹)
- 2. 기아 FOD(현대오토에버) 사이트 개발
- 3. LG전자 글로벌 운영 상시개선 및 딜러샵 개발
- 4. 앤서스랩코리아에서 GGCORE 서비스의 미국, 영국, 러시아, 중국, 독일, 벨기에를 기점으로 여러 국가를 대상으로 프론트엔드 개발 운영
- 5. 현진아이씨티에서 코인제스트 회원 파트(KYC, Join, Step) 부분을 프론트, 백엔드 개발 운영
+ 1. KB Star 뱅킹 운영
+ 2. LG전자 글로벌 운영 상시개선 및 딜러샵 개발
+ 3. 기아 FOD(EV9) 사이트 개발
+ 4. GGCORE 서비스의 미국, 영국등을 대상으로 프론트엔드 개발 운영
+ 5. 코인제스트 회원 파트(KYC, Join, Step) 개발 운영
 
 ## History
  <ol>
@@ -230,11 +228,3 @@ toc: true
   ![Git 2020 Information](/techblog/assets/images/webzen/webzen4.png)  
 </div>
 </details>
-
-## Introduce
- - 변화  
- 저는 학창시절 내성적이고 소극적이지만 잘 웃고 말을 잘 들어주는 평범하고 편한 친구였었습니다. 자기주장을 내세우기보다는 항상 친구들의 의견을 따랐었습니다. 그러던 중 고등학교 반장, 대학교 반대표, 한빛소프트 파트장을 역임하면서 때로는 자기주장을 내세우는 법도 배우고 함께하는 친구들의 의견을 듣는 법, 소통하는 법에 대해서 고민을 많이 하게 되었습니다.  
- - 소통  
- 웹퍼블리셔 또는 프론트엔드 엔지니어로써 기획자, 디자이너, 개발자들과 소통을 해야 하는 경우들이 많았습니다. 이런 소통이 잘못되게 되면 작업물을 못 쓰게 되는 예도 있고 재작업을 진행해야 하는 경우들이 발생해서 될 수 있으면 소통에 많은 노력을 하고 있습니다.  
- - 발전  
- 프로젝트를 진행하기 위해서나 개인의 발전을 위하여 학습을 진행하는 때도 있었습니다. 신입때는 잘 모르는 부분을 채우기 위해 HTML, CSS, Jquery 학습을 진행하기도 하고 개인의 발전을 위하여 vue.js를 이용해 암호화폐 거래소 개발, angular.js 및 angular를 이용해 홀덤게임 사용자 화면 및 백오피스를 개발, react 프로젝트 또한 진행하고 있습니다.  
