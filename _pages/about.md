@@ -20,6 +20,16 @@ toc: true
 ## History
  <ol>
   <li>
+    <h3>락플레이스</h3>
+    <dl>
+      <dt>데이터 가명화 솔루션(Privacygate) - 현대오토에버</dt>
+      <dd>
+        * 2026.04 ~ 2026.07<br>
+        * 프론트(react), 백엔드(spring boot) 개발(1/4)
+      </dd>
+    </dl>
+  </li>
+  <li>
     <h3>유플리트</h3>
     <dl>
       <dt>KB Star 뱅킹 운영</dt>
