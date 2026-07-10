@@ -74,11 +74,12 @@ toc: true
 
 ## Career Highlights
 
-1. KB Star 뱅킹 운영
-2. LG전자 글로벌 운영 상시개선 및 Dealer Shop 개발
-3. 기아 FOD(EV9) 사이트 개발
-4. GGCORE 서비스의 미국, 영국 대상 프론트엔드 개발 및 운영
-5. 코인제스트 회원 파트(KYC, Join, Step) 개발 및 운영
+1. 현대오토에버 PrivacyGate 가명화 솔루션 개발
+2. KB Star 뱅킹 운영
+3. LG전자 글로벌 운영 상시개선 및 Dealer Shop 개발
+4. 기아 커넥트 스토어(FOD) 사이트 개발
+5. GGCORE 서비스의 미국, 영국 대상 프론트엔드 개발 및 운영
+6. 코인제스트 회원 파트(KYC, Join, Step) 개발 및 운영
 
 ## Career History
 
@@ -99,7 +100,7 @@ toc: true
 - **2021.09 ~ 2025.04**
 - 자원순환보증금센터 1회용컵 반환 보증금 프로젝트
 - 유니에스 홈페이지 반응형 퍼블리싱
-- 기아 커넥트 스토어 반응형 프론트엔드
+- 기아 커넥트 스토어(FOD) 반응형 프론트엔드
 - LG전자 글로벌 운영 상시개선
 - 한화생명 비대면 인증 고도화
 - LG전자 글로벌 Dealer Shop
@@ -108,7 +109,7 @@ toc: true
 ### 앤서스랩
 
 - **2020.05 ~ 2021.09**
-- 백오피스 및 사용자 화면 개발, 운영
+- GGCORE 서비스(미국, 영국 대상) 백오피스 및 사용자 화면 개발, 운영
 - AngularJS, Angular, TypeScript, HTML, CSS, SCSS, GitHub, Code Review
 
 ### 가온소프트
