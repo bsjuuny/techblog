@@ -39,7 +39,7 @@ footer:
       url: "https://github.com/bsjuuny"
 
 atom_feed:
-  path: "/feed.xml"
+  path: "/techblog/feed.xml"
 
 analytics:
   provider: false
