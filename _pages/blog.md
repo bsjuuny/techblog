@@ -17,7 +17,7 @@ Frontend 개발 과정에서 마주친 문제를 **맥락 → 선택 → 구현 
 <nav class="inline-links" aria-label="글 탐색">
   <a class="text-link" href="{{ '/categories/' | relative_url }}">카테고리별 보기</a>
   <a class="text-link" href="{{ '/tags/' | relative_url }}">태그별 보기</a>
-  <a class="text-link" href="{{ '/feed.xml' | relative_url }}">RSS</a>
+  <a class="text-link" href="{{ site.atom_feed.path }}">RSS</a>
 </nav>
 
 {% assign public_posts = site.posts | where_exp: "post", "post.published != false" %}
