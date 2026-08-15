@@ -2,16 +2,14 @@ remote_theme: "mmistakes/minimal-mistakes"
 minimal_mistakes_skin: "default"
 
 locale: "ko-KR"
-title: "백승준 | Senior Frontend Engineer"
+title: "Frontend Engineering Notes"
 title_separator: "|"
 name: "백승준"
-description: "16년 이상의 Web/UI 경력을 바탕으로 React, TypeScript, Vue, Angular, AEM 기반 Enterprise Frontend를 개발해 온 백승준의 포트폴리오"
+description: "React, TypeScript, Web Standards, Enterprise UI 개발 과정에서 얻은 문제 해결 경험을 기록하는 기술 블로그"
 url: "https://bsjuuny.github.io"
 baseurl: "/techblog"
 repository: "bsjuuny/techblog"
-masthead_title: "백승준 · Frontend Engineer"
-logo: "/assets/images/david.png"
-og_image: "/assets/images/david.png"
+masthead_title: "Frontend Engineering Notes"
 breadcrumbs: false
 words_per_minute: 200
 search: true
@@ -27,7 +25,7 @@ social:
 author:
   name: "백승준"
   avatar: "/assets/images/david.png"
-  bio: "Senior Frontend Engineer · 16+ Years in Web Development"
+  bio: "Frontend Engineer writing about UI engineering and production experience"
   location: "Seoul, Republic of Korea"
   links:
     - label: "GitHub"

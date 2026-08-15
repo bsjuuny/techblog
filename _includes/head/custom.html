@@ -1,14 +1,17 @@
-<link rel="icon" type="image/png" href="{{ '/assets/images/david.png' | relative_url }}">
+<link rel="icon" type="image/svg+xml" href="{{ '/assets/images/favicon.svg' | relative_url }}">
 <meta name="theme-color" content="#17365d">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "Person",
-  "name": "백승준",
+  "@type": "Blog",
+  "name": "{{ site.title }}",
   "url": "{{ site.url }}{{ site.baseurl }}/",
-  "jobTitle": "Senior Frontend Engineer",
-  "sameAs": ["https://github.com/bsjuuny"],
-  "knowsAbout": ["React", "TypeScript", "JavaScript", "Vue", "Angular", "AEM", "Responsive Web", "Web Accessibility"]
+  "description": "{{ site.description }}",
+  "inLanguage": "ko-KR",
+  "author": {
+    "@type": "Person",
+    "name": "백승준",
+    "sameAs": ["https://github.com/bsjuuny"]
+  }
 }
 </script>
-

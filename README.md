@@ -1,13 +1,14 @@
-# 백승준 | Senior Frontend Engineer Portfolio
+# Frontend Engineering Notes
 
-16년 이상의 Web/UI 경력을 React, TypeScript, Vue, Angular, AEM 기반 Enterprise Frontend 경험으로 연결해 보여주는 GitHub Pages 포트폴리오입니다.
+Frontend 개발 과정에서 마주친 문제, 기술 선택의 기준, 운영 경험을 정리하는 GitHub Pages 기술 블로그입니다. 경력과 프로젝트는 기술 글의 배경 정보로 분리해 제공합니다.
 
 ## 페이지
 
-- Home: 채용용 Portfolio Landing
-- About: 전문 영역, 기술 스택, 경력 흐름
-- Projects: 고객사·근무회사·역할을 구분한 대표 프로젝트
+- Home: 최신 글, 주요 주제, 작성 원칙
 - Blog: 실제 경험을 검증한 기술 글
+- Categories: 주제별 글 탐색
+- Projects: 기술 글의 배경이 되는 대표 프로젝트
+- About: 작성자의 전문 영역과 경력 흐름
 
 ## 기술 구성
 

@@ -20,6 +20,8 @@ REQUIRED = [
     "_pages/about.md",
     "_pages/projects.md",
     "_pages/blog.md",
+    "_posts/2026-08-15-responsive-web-production-checklist.md",
+    "_posts/2026-08-15-ai-generated-frontend-code-review-checklist.md",
     "_data/navigation.yml",
     "_data/projects.yml",
     "_data/career.yml",
@@ -54,7 +56,7 @@ for path in FORBIDDEN_PUBLIC_PATHS:
 
 config = (ROOT / "_config.yml").read_text(encoding="utf-8")
 for required_setting in [
-    'title: "백승준 | Senior Frontend Engineer"',
+    'title: "Frontend Engineering Notes"',
     'baseurl: "/techblog"',
     'url: "https://bsjuuny.github.io"',
     "jekyll-sitemap",
