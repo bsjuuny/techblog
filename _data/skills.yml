@@ -1,0 +1,35 @@
+groups:
+  - name: "Primary"
+    items:
+      - "React"
+      - "JavaScript"
+      - "HTML5"
+      - "CSS3"
+      - "Responsive Web"
+  - name: "Experienced"
+    items:
+      - "TypeScript"
+      - "Vue.js"
+      - "Vuex"
+      - "AngularJS / Angular"
+      - "AEM"
+      - "jQuery"
+  - name: "Integration / Backend Experience"
+    items:
+      - "REST API"
+      - "Ajax / Axios"
+      - "Spring Boot"
+      - "PostgreSQL"
+      - "AWS Elastic Beanstalk"
+
+journey:
+  - "Web Publishing / Web Standards"
+  - "JavaScript UI Development"
+  - "Responsive Web / Mobile Web"
+  - "SPA"
+  - "Vue"
+  - "Angular / TypeScript"
+  - "React"
+  - "AEM + React Enterprise Frontend"
+  - "React 중심 Enterprise Development"
+

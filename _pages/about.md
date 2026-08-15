@@ -1,245 +1,148 @@
 ---
 permalink: /about/
 title: "About"
+description: "Senior Frontend Engineer 백승준의 전문 영역, 기술 스택, 경력 흐름과 프로젝트 경험"
 search: true
-last_modified_at: 2026-07-10T00:00:00+09:00
+last_modified_at: 2026-08-15T00:00:00+09:00
 toc: true
+toc_sticky: true
+author_profile: false
+classes: wide portfolio-page
 ---
 
-16년 이상 웹 프론트엔드와 UI 개발을 해왔습니다. 웹표준, 웹접근성, 반응형 퍼블리싱을 기반으로 경력을 시작했고, 이후 Vue, Angular, React 기반의 프론트엔드 개발로 영역을 확장했습니다.
+<p class="page-kicker">ABOUT</p>
 
-최근에는 금융, 제조, 엔터프라이즈 환경에서 React 기반 업무 시스템과 운영 UI를 개발하고 있습니다. 안정적인 화면 구조, API 연동, 공통 컴포넌트화, 운영 품질 개선에 강점이 있습니다.
-{: .notice--info}
+16년 이상 Web/UI 개발을 수행하며 Web Standards와 퍼블리싱에서 JavaScript UI, SPA, Vue, Angular, React 기반 Enterprise Frontend로 업무 영역을 확장해 왔습니다.
 
-## Core Strengths
+최근에는 자동차, 금융, 보험, 전자 분야에서 React 기반 신규 개발과 운영·개선을 수행했습니다. Full-stack 경험은 주력 포지션이 아닌 **Frontend 중심의 통합 개발 경험**으로 다룹니다.
 
-| Area | Experience |
-| --- | --- |
-| Frontend | React, TypeScript, Vue, Angular, JavaScript |
-| UI Engineering | Web Standard, Accessibility, Responsive UI, Cross Browsing |
-| Enterprise UI | Admin, Back Office, Search, Table, Form, Detail View |
-| API Integration | REST API, GraphQL, Loading/Error/Empty State Handling |
-| Collaboration | Git, Code Review, Requirement Analysis, Operation Support |
+## Professional Summary
 
-## React / Frontend Architecture
+- React, TypeScript, Vue, Angular 기반 Frontend 개발 경험
+- AEM 환경의 React 개발과 글로벌 사이트 상시개선 경험
+- 금융·자동차·보험·전자·공공·커머스 등 다양한 도메인 경험
+- Responsive Web/Mobile UI, Web Standards, Cross-browser 대응 경험
+- 신규 화면 개발과 장기간 운영·유지보수를 함께 수행한 경력
 
-- React 컴포넌트 구조 설계와 재사용 가능한 UI 패턴 구성
-- API 응답 상태에 따른 loading, empty, error, success 화면 처리
-- 권한, 라우팅, 폼, 테이블 중심의 백오피스 UI 개발 경험
-- TypeScript 기반 props/interface 설계와 화면 상태 모델링
-- jQuery, Vue, Angular 기반 레거시 화면을 React 환경과 함께 운영하거나 점진적으로 전환한 경험
-- 금융권과 대기업 운영 환경에서 브라우저 호환성, 반응형, 접근성 기준을 고려한 화면 품질 관리
+## Core Expertise
 
-## Recent React Projects
+<div class="expertise-grid expertise-grid--compact">
+  <article>
+    <h3>Enterprise Frontend</h3>
+    <p>금융권과 대기업 환경의 Web/Mobile Frontend 개발·운영</p>
+  </article>
+  <article>
+    <h3>Modern Frontend</h3>
+    <p>React, TypeScript, Vue, Angular를 활용한 UI 개발</p>
+  </article>
+  <article>
+    <h3>UI Engineering</h3>
+    <p>Web Standards, Responsive UI, Cross-browser 품질 대응</p>
+  </article>
+  <article>
+    <h3>Integration Experience</h3>
+    <p>REST API, Ajax/Axios와 Frontend 중심 Backend 연동</p>
+  </article>
+</div>
 
-### 현대오토에버 PrivacyGate 가명화 솔루션
+## Tech Stack
 
-- **Role**: Frontend React 개발 및 Spring Boot 기반 백엔드 개발 참여
-- **Period**: 2026.04 ~ 2026.07
-- **Stack**: React, Java, Spring Boot
+<div class="skill-groups">
+{% for group in site.data.skills.groups %}
+  <section class="skill-group" aria-labelledby="skill-{{ forloop.index }}">
+    <h3 id="skill-{{ forloop.index }}">{{ group.name }}</h3>
+    <ul class="tag-list">
+    {% for item in group.items %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+  </section>
+{% endfor %}
+</div>
 
-- React 기반 관리자 화면 개발
-- 데이터 조회, 검색, 필터, 상세 화면의 UI 흐름 구현
-- API 연동 과정에서 로딩, 실패, 빈 데이터, 권한별 화면 상태 분리
-- 반복되는 화면 패턴을 공통 컴포넌트로 정리해 유지보수성 개선
-- 화면 요구사항과 API 스펙을 함께 이해하고 프론트엔드/백엔드 흐름 조율
+기술 숙련도를 임의의 퍼센트로 표현하지 않고, 실제 프로젝트에서 확인되는 경험 범위로 분류했습니다.
 
-### LG전자 글로벌 운영 및 Dealer Shop
+## Selected Projects
 
-- **Role**: AEM 환경의 React 컴포넌트 개발 및 글로벌 운영 대응
-- **Period**: 2023.10 ~ 2024.07, 2025.02 ~ 2025.04
-- **Stack**: AEM, React, Java, GraphQL
+{% for project in site.data.projects %}
+### {{ project.name }}
 
-- 글로벌 사이트 운영 환경에서 React 컴포넌트 수정 및 신규 화면 개발
-- GraphQL API 데이터 구조에 맞춘 화면 상태 처리와 예외 케이스 대응
-- 다국가, 다국어 운영 환경을 고려한 UI 변경과 배포 리스크 관리
-- 운영 이슈를 빠르게 파악하고 안정적으로 화면 수정
+<dl class="project-facts">
+  <div><dt>Period</dt><dd>{{ project.period }}</dd></div>
+  <div><dt>Client / Company</dt><dd>{{ project.client }} / {{ project.company }}</dd></div>
+  <div><dt>Role</dt><dd>{{ project.role }}</dd></div>
+  <div><dt>Tech</dt><dd>{{ project.stack | join: ", " }}</dd></div>
+</dl>
 
-### 한화생명 비대면 인증 고도화
+{{ project.summary }}
+{% endfor %}
 
-- **Role**: React 기반 OCR/안면인식 연동 화면 개발
-- **Period**: 2024.09 ~ 2025.01
-- **Stack**: React, OCR
+[프로젝트별 담당 업무 자세히 보기]({{ '/projects/' | relative_url }}){: .btn .btn--primary}
 
-- 인증 단계별 화면 전환, 사용자 입력, 외부 OCR 모듈 연동 흐름 구현
-- 실패, 재시도, 완료 상태를 분리해 사용자가 다음 행동을 이해할 수 있는 UI 구성
-- 보안과 안정성이 중요한 금융권 업무 특성을 고려한 화면 검수와 개발 대응
+## Engineering Experience
 
-## Problem Solving
+### Vue·TypeScript 기반 거래소 SPA
 
-- 운영 중 반복되던 검색, 목록, 상세, 입력 화면 패턴을 정리해 수정 범위를 줄이고 신규 화면 개발 속도를 높였습니다.
-- API 실패, 세션 만료, 권한 없음, 빈 데이터처럼 운영에서 자주 발생하는 상태를 화면 단에서 명확하게 분리했습니다.
-- 웹표준, 접근성, 반응형 경험을 React 컴포넌트 품질 관리에 연결해 다양한 브라우저와 디바이스에서 안정적인 UI를 만드는 데 집중했습니다.
-- AI 도구를 코드 리뷰, 리팩터링, 테스트 케이스 점검 보조로 활용해 개발 생산성과 검토 품질을 높이고 있습니다.
+**Context**
 
-## Career Highlights
+회원가입·인증·로그인과 운영 기능을 포함한 거래소 Frontend 개발이 필요한 환경이었습니다.
 
-1. 현대오토에버 PrivacyGate 가명화 솔루션 개발
-2. KB Star 뱅킹 운영
-3. LG전자 글로벌 운영 상시개선 및 Dealer Shop 개발
-4. 기아 커넥트 스토어(FOD) 사이트 개발
-5. GGCORE 서비스의 미국, 영국 등 대상국별 프론트엔드 개발 및 운영
-6. 코인제스트 회원 파트(KYC, Join, Step) 개발 및 운영
+**Implementation**
 
-## Career History
+Vue, Vue Router, TypeScript로 SPA를 구성하고 Axios/REST API 통신, Cookie 기반 인증 흐름, 다국어 UI를 구현했습니다. 업무 PL 역할과 개발을 함께 수행했습니다.
 
-### 락플레이스
+**Outcome**
 
-- **2026.04 ~ 2026.07**
-- 데이터 가명화 솔루션(PrivacyGate) - 현대오토에버
-- React, Java, Spring Boot
+회원 관련 Frontend와 운영 기능을 하나의 SPA 흐름으로 구성하고 서비스 운영을 병행했습니다.
 
-### 유플리트
+### Legacy Web에서 Modern Frontend까지
 
-- **2025.05 ~ 2026.02**
-- KB Star 뱅킹 운영
-- HTML, CSS, JavaScript, jQuery
+Web Standards·퍼블리싱 경험을 바탕으로 jQuery, Vue, Angular, React 순으로 기술 범위를 확장했습니다. 신규 프레임워크 경험만 강조하지 않고, 기존 서비스의 운영 안정성과 점진적 개선을 함께 고려해 왔습니다.
 
-### BRIT
+## Career Timeline
 
-- **2021.09 ~ 2025.04**
-- 자원순환보증금센터 1회용컵 반환 보증금 프로젝트
-- 유니에스 홈페이지 반응형 퍼블리싱
-- 기아 커넥트 스토어(FOD) 반응형 프론트엔드
-- LG전자 글로벌 운영 상시개선
-- 한화생명 비대면 인증 고도화
-- LG전자 글로벌 Dealer Shop
-- HTML, CSS, JavaScript, jQuery, Websquare5, AEM, React, GraphQL, Java
+### Recent / Key Experience
 
-### 앤서스랩
+<div class="career-list">
+{% for career in site.data.career %}
+  {% if career.tier == "recent" %}
+  <article class="career-item">
+    <div class="career-heading">
+      <h4>{{ career.company }}</h4>
+      <span>{{ career.period }}</span>
+    </div>
+    <p><strong>{{ career.position }}</strong> · {{ career.summary }}</p>
+  </article>
+  {% endif %}
+{% endfor %}
+</div>
 
-- **2020.05 ~ 2021.09**
-- GGCORE 서비스(미국, 영국 대상) 백오피스 및 사용자 화면 개발, 운영
-- AngularJS, Angular, TypeScript, HTML, CSS, SCSS, GitHub, Code Review
+### Earlier Experience
 
-### 가온소프트
+<div class="career-list career-list--compact">
+{% for career in site.data.career %}
+  {% if career.tier == "earlier" %}
+  <article class="career-item">
+    <div class="career-heading">
+      <h4>{{ career.company }}</h4>
+      <span>{{ career.period }}</span>
+    </div>
+    <p><strong>{{ career.position }}</strong> · {{ career.summary }}</p>
+  </article>
+  {% endif %}
+{% endfor %}
+</div>
 
-- **2019.11 ~ 2020.03**
-- 그룹웨어 화면 개발
-- Vue.js, TypeScript, Java, Spring Boot, HTML, CSS, JavaScript, SVN
-
-### 현진ICT
-
-- **2017.12 ~ 2019.04**
-- 코인제스트 회원 파트 개발 및 운영
-- Vue.js, TypeScript, Java, Spring Boot, Swagger, MyBatis, HTML, CSS, JavaScript, SVN
-
-### 그린스테이지랩
-
-- **2017.07 ~ 2017.12**
-- Kai 코인 서비스 개발 및 운영
-- Vue.js, HTML, CSS, JavaScript, SVN
-
-### 서울옥션블루
-
-- **2016.12 ~ 2017.03**
-- 서울옥션블루 웹/모바일 서비스 개발 및 운영
-- HTML, CSS, JavaScript, jQuery
-
-### 멋집
-
-- **2016.05 ~ 2016.12**
-- HOT SOURCE 개발 및 운영
-- HTML, CSS, JavaScript, Java, Spring Boot, SVN
-
-### 웹젠
-
-- **2015.08 ~ 2016.06**
-- 웹젠 국내/해외 서비스 및 이벤트 페이지 개발, 운영
-- HTML, CSS, JavaScript, SVN
-
-### 온오프믹스
-
-- **2014.07 ~ 2015.07**
-- 온오프믹스 사이트 개발 및 운영
-- HTML, CSS, JavaScript, SVN
-
-### 한빛소프트
-
-- **2011.03 ~ 2013.03**
-- 국내/해외 게임 사이트 개발 및 운영
-- HTML, CSS, JavaScript, SVN
-
-### 아이파트너즈
-
-- **2010.05 ~ 2011.02**
-- 현대카드 사이트 개발 및 운영
-- HTML, CSS, JavaScript, SVN
-
-### 플로그램
-
-- **2009.05 ~ 2010.05**
-- 이벤트/프로모션 사이트 개발 및 운영
-- HTML, CSS, JavaScript, SVN
+초기 경력을 삭제하지 않고 간결하게 유지해 전체 경력 흐름이 끊기지 않도록 구성했습니다.
 
 ## Education
 
+- 유한대학 컴퓨터정보과 졸업
 - 용산고등학교 졸업
-- 유한대학 컴퓨터정보학과 졸업
 
 ## Certifications
 
-- 정보처리산업기사
-- 컴퓨터프로그래머 2급(C언어)
+- 정보처리산업기사 (2008.07)
+- 컴퓨터프로그래머 2급(C언어) — 원본 기술이력서에는 없어 최종 확인 필요
 
-## Project Screenshots
+## Contact
 
-<details>
-<summary style="cursor: pointer;">Nsuslab</summary>
-<div markdown="1">
-
-1. Nsus 개발 활동 이력
-  * Git Pull Request 2021
-  ![Git Pull Request](/techblog/assets/images/nsuslab/pr1.png)
-  * Git 2021
-  ![Git 2021 Information](/techblog/assets/images/nsuslab/git-2021.png)
-  * Git 2020
-  ![Git 2020 Information](/techblog/assets/images/nsuslab/git-2020.png)
-2. Nsus 운영 화면
-  * Back Office
-  ![Back Office](/techblog/assets/images/nsuslab/backoffice.png)
-  * My Info
-  ![My Info](/techblog/assets/images/nsuslab/myinfo.png)
-  * Deposit
-  ![Deposit](/techblog/assets/images/nsuslab/deposit.png)
-  * RG
-  ![RG](/techblog/assets/images/nsuslab/rg.png)
-
-</div>
-</details>
-
-<details>
-<summary style="cursor: pointer;">Kaon Soft</summary>
-<div markdown="1">
-
-1. Kaon Soft [Groupware](https://dev.officeground.com/#/login)
-  * Sign In
-  ![Groupware Sign In](/techblog/assets/images/kaonsoft/groupware1.png)
-  * 전자결재 1
-  ![Groupware Approval 1](/techblog/assets/images/kaonsoft/groupware2.png)
-  * 전자결재 2
-  ![Groupware Approval 2](/techblog/assets/images/kaonsoft/groupware3.png)
-  * 자원요청
-  ![Groupware Resource Request](/techblog/assets/images/kaonsoft/groupware4.png)
-  * 일정관리
-  ![Groupware Schedule](/techblog/assets/images/kaonsoft/groupware5.png)
-
-</div>
-</details>
-
-<details>
-<summary style="cursor: pointer;">Webzen</summary>
-<div markdown="1">
-
-1. Company Webzen [Site](https://company.webzen.com/main)
-  * Main 1
-  ![Webzen Main 1](/techblog/assets/images/webzen/webzen1.png)
-  * Main 2
-  ![Webzen Main 2](/techblog/assets/images/webzen/webzen2.png)
-  * 주가정보
-  ![Webzen Stock Information](/techblog/assets/images/webzen/webzen3.png)
-  * 주요정보
-  ![Webzen Company Information](/techblog/assets/images/webzen/webzen4.png)
-
-</div>
-</details>
+경력 및 공개 가능한 작업은 [GitHub 프로필](https://github.com/bsjuuny)에서 확인할 수 있습니다.

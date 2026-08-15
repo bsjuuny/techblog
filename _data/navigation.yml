@@ -1,19 +1,11 @@
-# main links
 main:
+  - title: "Home"
+    url: "/"
   - title: "About"
     url: "/about/"
-  # - title: "Category"
-    # url: "/categories/"
-
-# sub
-docs:
-  - title: Getting Started
-    children:
-      - title: "Quick-Start Guide"
-        url: /docs/quick-start-guide/
-      - title: "Structure"
-        url: /docs/structure/
-      - title: "Installation"
-        url: /docs/installation/
-      - title: "Upgrading"
-        url: /docs/upgrading/
+  - title: "Projects"
+    url: "/projects/"
+  - title: "Blog"
+    url: "/blog/"
+  - title: "GitHub"
+    url: "https://github.com/bsjuuny"

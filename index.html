@@ -1,4 +1,105 @@
 ---
-layout: home
-author_profile: true
+layout: portfolio
+title: "백승준 | Senior Frontend Engineer"
+permalink: /
+author_profile: false
+excerpt: "16년 이상의 Web/UI 경력을 바탕으로 Enterprise Frontend를 개발해 온 백승준의 포트폴리오"
 ---
+
+<section class="portfolio-hero" aria-labelledby="portfolio-title">
+  <p class="portfolio-eyebrow">BAEK SEUNGJUN · FRONTEND ENGINEER</p>
+  <h1 id="portfolio-title">Senior Frontend Engineer</h1>
+  <p class="portfolio-lead">16+ Years in Web Development</p>
+  <p class="portfolio-keywords">React · TypeScript · JavaScript · AEM · Vue · Angular · Responsive Web · Web Accessibility</p>
+  <p class="portfolio-intro">웹표준과 UI 구현에서 출발해 Vue, Angular, React 기반의 Enterprise Frontend 개발로 영역을 확장해 왔습니다. 최근에는 자동차, 금융, 보험, 전자 분야의 Web/Mobile 프로젝트를 수행했습니다.</p>
+  <nav class="portfolio-actions" aria-label="포트폴리오 주요 링크">
+    <a class="btn btn--primary" href="{{ '/projects/' | relative_url }}">View Projects</a>
+    <a class="btn btn--inverse" href="{{ '/about/' | relative_url }}">About Me</a>
+    <a class="btn btn--inverse" href="{{ '/blog/' | relative_url }}">Tech Blog</a>
+    <a class="btn btn--inverse" href="https://github.com/bsjuuny" rel="noopener noreferrer">GitHub</a>
+  </nav>
+</section>
+
+<section class="portfolio-section" aria-labelledby="summary-title">
+  <div class="section-heading">
+    <p class="portfolio-eyebrow">PROFILE</p>
+    <h2 id="summary-title">Professional Summary</h2>
+  </div>
+  <div class="summary-copy">
+    <p>16년 이상 Web/UI 개발을 수행하며 퍼블리싱, JavaScript UI, SPA, Enterprise Frontend로 경력을 발전시켜 왔습니다.</p>
+    <p>React, TypeScript, Vue, Angular를 활용한 화면 개발과 AEM 운영 환경을 경험했으며, REST API 연동과 반응형 Web/Mobile UI 구현을 담당했습니다.</p>
+    <p>자동차, 금융, 보험, 전자, 공공, 커머스 등 여러 도메인에서 신규 개발과 운영·개선을 모두 경험했습니다.</p>
+  </div>
+</section>
+
+<section class="portfolio-section" aria-labelledby="expertise-title">
+  <div class="section-heading">
+    <p class="portfolio-eyebrow">EXPERTISE</p>
+    <h2 id="expertise-title">Core Expertise</h2>
+  </div>
+  <div class="expertise-grid">
+    <article>
+      <h3>Enterprise Frontend</h3>
+      <p>금융권과 대기업 운영 환경에서 Web/Mobile Frontend 신규 개발과 상시개선을 수행했습니다.</p>
+    </article>
+    <article>
+      <h3>Modern Frontend</h3>
+      <p>React, TypeScript, Vue, Angular 기반 UI 개발과 SPA 프로젝트 경험을 보유하고 있습니다.</p>
+    </article>
+    <article>
+      <h3>UI Engineering</h3>
+      <p>Web Standards, Responsive UI, Cross-browser 대응을 기반으로 화면 품질을 관리해 왔습니다.</p>
+    </article>
+    <article>
+      <h3>Enterprise Integration</h3>
+      <p>REST API, Ajax/Axios 연동과 Spring Boot·PostgreSQL을 포함한 Frontend 중심 통합 경험이 있습니다.</p>
+    </article>
+  </div>
+</section>
+
+<section class="portfolio-section" id="featured-projects" aria-labelledby="projects-title">
+  <div class="section-heading section-heading--split">
+    <div>
+      <p class="portfolio-eyebrow">SELECTED WORK</p>
+      <h2 id="projects-title">Featured Projects</h2>
+    </div>
+    <a class="text-link" href="{{ '/projects/' | relative_url }}">모든 프로젝트 보기 <span aria-hidden="true">→</span></a>
+  </div>
+  <div class="project-grid">
+    {% for project in site.data.projects %}
+      {% if project.featured %}
+      <article class="project-card">
+        <p class="project-meta">{{ project.period }} · {{ project.industry }}</p>
+        <h3>{{ project.name }}</h3>
+        <p>{{ project.summary }}</p>
+        <dl>
+          <div><dt>Client</dt><dd>{{ project.client }}</dd></div>
+          <div><dt>Role</dt><dd>{{ project.role }}</dd></div>
+        </dl>
+        <ul class="tag-list" aria-label="{{ project.name }} 기술 스택">
+          {% for tech in project.stack %}<li>{{ tech }}</li>{% endfor %}
+        </ul>
+      </article>
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>
+
+<section class="portfolio-section" aria-labelledby="journey-title">
+  <div class="section-heading">
+    <p class="portfolio-eyebrow">CAREER JOURNEY</p>
+    <h2 id="journey-title">Frontend 기술과 함께 확장해 온 역할</h2>
+  </div>
+  <ol class="journey-list" aria-label="Frontend 경력 성장 과정">
+    {% for step in site.data.skills.journey %}<li>{{ step }}</li>{% endfor %}
+  </ol>
+  <p class="section-note">초기 Web Standards·퍼블리싱 기반 경험을 현재의 React/AEM Enterprise Frontend 업무까지 연결해 온 경력입니다.</p>
+</section>
+
+<section class="portfolio-cta" aria-labelledby="cta-title">
+  <div>
+    <p class="portfolio-eyebrow">MORE ABOUT MY WORK</p>
+    <h2 id="cta-title">프로젝트와 경력 흐름을 확인해 보세요.</h2>
+  </div>
+  <a class="btn btn--primary" href="{{ '/about/' | relative_url }}">About &amp; Career</a>
+</section>

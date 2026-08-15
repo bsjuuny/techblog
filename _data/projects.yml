@@ -1,0 +1,85 @@
+- name: "현대자동차 개인정보 정비 데이터 반출 플랫폼"
+  slug: "hyundai-data-export"
+  period: "2026.04–2026.07"
+  client: "현대오토에버"
+  company: "락플레이스"
+  industry: "자동차"
+  role: "Frontend 중심 Full-stack 개발 참여"
+  stack: ["React", "Spring Boot", "PostgreSQL", "REST API"]
+  summary: "개인정보 정비 데이터 반출 플랫폼의 React UI와 Spring Boot·PostgreSQL 기반 기능 개발에 참여했습니다."
+  work:
+    - "React 기반 Frontend 기능 개발"
+    - "Spring Boot·PostgreSQL 기반 기능 개발 참여"
+    - "REST API를 통한 Frontend/Backend 연동"
+  featured: true
+
+- name: "KB Star 뱅킹 운영"
+  slug: "kb-star-banking"
+  period: "2025.05–2026.02"
+  client: "KB국민은행"
+  company: "유플리트"
+  industry: "금융"
+  role: "Web/Mobile 채널 운영·개발"
+  stack: ["HTML", "CSS", "JavaScript", "jQuery"]
+  summary: "인터넷 뱅킹, 모바일 Web, 스타뱅킹 채널의 Frontend 운영·개발 업무를 수행했습니다."
+  work:
+    - "인터넷 뱅킹 및 모바일 Web 채널 운영"
+    - "HTML, CSS, JavaScript 기반 화면 유지보수"
+  featured: true
+
+- name: "LG전자 Dealer Shop"
+  slug: "lg-dealer-shop"
+  period: "2025.02–2025.04"
+  client: "LG전자"
+  company: "비알아이티"
+  industry: "전자·유통"
+  role: "Frontend 개발"
+  stack: ["React", "AEM"]
+  summary: "AEM 환경에서 React 기반 Dealer Shop Frontend 화면을 개발했습니다."
+  work:
+    - "React/AEM 기반 Dealer Shop Frontend 개발"
+    - "Web/Mobile 화면 대응"
+  featured: true
+
+- name: "한화생명 비대면 인증 고도화"
+  slug: "hanwha-authentication"
+  period: "2024.09–2025.01"
+  client: "한화생명"
+  company: "비알아이티"
+  industry: "보험"
+  role: "Frontend 개발"
+  stack: ["React", "OCR"]
+  summary: "React 기반 비대면 OCR 인증 UI 개발을 담당했습니다."
+  work:
+    - "React 기반 인증 화면 개발"
+    - "OCR 인증 UI 구현"
+  featured: true
+
+- name: "LG전자 글로벌 운영"
+  slug: "lg-global-operation"
+  period: "2023.10–2024.07"
+  client: "LG전자"
+  company: "비알아이티"
+  industry: "전자"
+  role: "Frontend 개발·운영"
+  stack: ["React", "AEM"]
+  summary: "AEM·React 환경의 글로벌 사이트 상시개선 업무를 수행했습니다."
+  work:
+    - "React/AEM 기반 글로벌 사이트 운영"
+    - "Frontend 화면 상시개선"
+  featured: true
+
+- name: "기아 커넥트 스토어"
+  slug: "kia-connect-store"
+  period: "2022.06–2023.07"
+  client: "현대오토에버"
+  company: "비알아이티"
+  industry: "자동차"
+  role: "Frontend 개발"
+  stack: ["HTML", "CSS", "JavaScript", "jQuery", "Ajax"]
+  summary: "기아 커넥트 스토어의 Web/Mobile 반응형 Frontend 화면을 개발했습니다."
+  work:
+    - "Web/Mobile 반응형 화면 개발"
+    - "JavaScript·jQuery·Ajax 기반 UI 구현"
+  featured: true
+
