@@ -1,38 +1,8 @@
-- name: "IPO Master"
-  category: "Finance"
-  summary: "경쟁률, 수요예측과 상장 수익률을 함께 확인하는 공모주 투자 정보 대시보드입니다."
-  url: "https://bsjuuny2026.mycafe24.com/ipomaster/"
-  stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
-
-- name: "오늘의 투자 신호"
-  category: "Finance"
-  summary: "기관·외국인 수급과 거래량을 기준으로 국내 주식 신호를 정리하는 서비스입니다."
-  url: "https://bsjuuny2026.mycafe24.com/todaysignal/"
-  stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
-
-- name: "KOSPI/KOSDAQ Top 100"
-  category: "Finance"
-  summary: "국내 주식의 주요 지표를 기준으로 KOSPI·KOSDAQ 종목 순위를 제공하는 퀀트 대시보드입니다."
-  url: "https://bsjuuny2026.mycafe24.com/krstock/"
-  stack: ["Python", "Static Web", "Market Data"]
-
-- name: "US Small-Cap Top 100"
-  category: "Finance"
-  summary: "미국 소형주 데이터를 수집해 주요 지표와 종목 순위를 제공하는 퀀트 대시보드입니다."
-  url: "https://bsjuuny2026.mycafe24.com/smallcap/"
-  stack: ["Python", "Static Web", "Market Data"]
-
 - name: "KRX Market Watch"
   category: "Finance"
   summary: "금과 석유 시세를 물리 효과와 함께 탐색할 수 있는 인터랙티브 시장 대시보드입니다."
   url: "https://bsjuuny2026.mycafe24.com/krxwatch/"
   stack: ["JavaScript", "Matter.js", "Market Data"]
-
-- name: "Trending Rankings"
-  category: "Data"
-  summary: "여러 검색·포털 데이터를 모아 실시간 인기 검색어와 급상승 이슈를 보여주는 대시보드입니다."
-  url: "https://bsjuuny2026.mycafe24.com/trendingrankings/"
-  stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
 
 - name: "Culture Hub"
   category: "Culture"
@@ -50,12 +20,6 @@
   category: "Culture"
   summary: "주변 전시와 미술 행사를 검색하고 상세 정보를 확인하는 전시 탐색 서비스입니다."
   url: "https://bsjuuny2026.mycafe24.com/artfinder/"
-  stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
-
-- name: "AnimeFinder"
-  category: "Entertainment"
-  summary: "트렌딩, 평점과 방영 예정 정보를 기준으로 애니메이션을 탐색하는 서비스입니다."
-  url: "https://bsjuuny2026.mycafe24.com/animefinder/"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
 
 - name: "하루결"
@@ -86,10 +50,4 @@
   category: "Lifestyle"
   summary: "가전·생활용품의 설명서, 소모품 교체 주기와 AS 정보를 한곳에서 관리하는 도구입니다."
   url: "https://bsjuuny2026.mycafe24.com/our-home-manual/"
-  stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
-
-- name: "유어픽"
-  category: "Kids & Education"
-  summary: "유치원과 어린이집의 주요 정보를 한눈에 비교할 수 있도록 구성한 탐색 서비스입니다."
-  url: "https://bsjuuny2026.mycafe24.com/yourpick/"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
