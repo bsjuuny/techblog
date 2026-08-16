@@ -2,14 +2,12 @@
   category: "Finance"
   summary: "경쟁률, 수요예측과 상장 수익률을 함께 확인하는 공모주 투자 정보 대시보드입니다."
   url: "https://bsjuuny2026.mycafe24.com/ipomaster/"
-  repository: "https://github.com/bsjuuny/ipo-master"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
 
 - name: "오늘의 투자 신호"
   category: "Finance"
   summary: "기관·외국인 수급과 거래량을 기준으로 국내 주식 신호를 정리하는 서비스입니다."
   url: "https://bsjuuny2026.mycafe24.com/todaysignal/"
-  repository: "https://github.com/bsjuuny/today-signal"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
 
 - name: "KOSPI/KOSDAQ Top 100"
@@ -28,14 +26,12 @@
   category: "Finance"
   summary: "금과 석유 시세를 물리 효과와 함께 탐색할 수 있는 인터랙티브 시장 대시보드입니다."
   url: "https://bsjuuny2026.mycafe24.com/krxwatch/"
-  repository: "https://github.com/bsjuuny/krxwatch"
   stack: ["JavaScript", "Matter.js", "Market Data"]
 
 - name: "Trending Rankings"
   category: "Data"
   summary: "여러 검색·포털 데이터를 모아 실시간 인기 검색어와 급상승 이슈를 보여주는 대시보드입니다."
   url: "https://bsjuuny2026.mycafe24.com/trendingrankings/"
-  repository: "https://github.com/bsjuuny/trending-rankings"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
 
 - name: "Culture Hub"
@@ -48,21 +44,18 @@
   category: "Culture"
   summary: "KOPIS 공공데이터를 활용해 국내 공연 정보를 검색하고 살펴볼 수 있는 서비스입니다."
   url: "https://bsjuuny2026.mycafe24.com/kopis/"
-  repository: "https://github.com/bsjuuny/kopis"
   stack: ["Next.js", "React", "TypeScript", "Public API"]
 
 - name: "Art Finder"
   category: "Culture"
   summary: "주변 전시와 미술 행사를 검색하고 상세 정보를 확인하는 전시 탐색 서비스입니다."
   url: "https://bsjuuny2026.mycafe24.com/artfinder/"
-  repository: "https://github.com/bsjuuny/art-finder"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
 
 - name: "AnimeFinder"
   category: "Entertainment"
   summary: "트렌딩, 평점과 방영 예정 정보를 기준으로 애니메이션을 탐색하는 서비스입니다."
   url: "https://bsjuuny2026.mycafe24.com/animefinder/"
-  repository: "https://github.com/bsjuuny/anime-finder"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
 
 - name: "하루결"
@@ -75,33 +68,28 @@
   category: "Housing"
   summary: "수도권 주택 공급과 청약 일정을 달력 형태로 탐색할 수 있는 서비스입니다."
   url: "https://bsjuuny2026.mycafe24.com/housingcalendar/"
-  repository: "https://github.com/bsjuuny/housing-calendar"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
 
 - name: "공지톡 정리함"
   category: "Productivity"
   summary: "어린이집·유치원 공지문에서 준비물, 일정과 부모가 할 일을 정리하는 도구입니다."
   url: "https://bsjuuny2026.mycafe24.com/gongjitalk/"
-  repository: "https://github.com/bsjuuny/gongjitalk"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
 
 - name: "진료메모"
   category: "Healthcare"
   summary: "병원 방문 전에 증상과 질문을 빠짐없이 정리할 수 있도록 돕는 메모 도구입니다."
   url: "https://bsjuuny2026.mycafe24.com/jinryo-memo/"
-  repository: "https://github.com/bsjuuny/jinryo-memo"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
 
 - name: "우리집 매뉴얼"
   category: "Lifestyle"
   summary: "가전·생활용품의 설명서, 소모품 교체 주기와 AS 정보를 한곳에서 관리하는 도구입니다."
   url: "https://bsjuuny2026.mycafe24.com/our-home-manual/"
-  repository: "https://github.com/bsjuuny/our-home-manual"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
 
 - name: "유어픽"
   category: "Kids & Education"
   summary: "유치원과 어린이집의 주요 정보를 한눈에 비교할 수 있도록 구성한 탐색 서비스입니다."
   url: "https://bsjuuny2026.mycafe24.com/yourpick/"
-  repository: "https://github.com/bsjuuny/yourpick"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]

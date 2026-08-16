@@ -16,7 +16,7 @@ classes: wide portfolio-page
 
 ## Live Projects
 
-현재 공개 URL에서 동작을 확인할 수 있는 Web 서비스입니다. 각 서비스의 기능과 공개 저장소가 있는 경우 소스 코드도 함께 확인할 수 있습니다.
+현재 공개 URL에서 동작을 확인할 수 있는 Web 서비스입니다.
 
 <div class="project-grid live-project-grid">
 {% for project in site.data.live_projects %}
@@ -31,7 +31,6 @@ classes: wide portfolio-page
     </ul>
     <p class="project-card__links">
       <a class="text-link" href="{{ project.url }}" target="_blank" rel="noopener noreferrer">서비스 보기 <span aria-hidden="true">↗</span></a>
-      {% if project.repository %}<a class="text-link" href="{{ project.repository }}" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a>{% endif %}
     </p>
   </article>
 {% endfor %}
