@@ -241,6 +241,27 @@ summary:focus-visible {
   color: var(--portfolio-muted);
 }
 
+.live-project-grid {
+  margin-top: 1.5rem;
+}
+
+.live-project-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.live-project-card .tag-list {
+  margin-top: 1.1rem;
+}
+
+.project-card .project-card__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.1rem;
+  margin-top: auto;
+  padding-top: 1.25rem;
+}
+
 .topic-card {
   border-top: 3px solid var(--portfolio-blue);
 }
