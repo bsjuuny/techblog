@@ -4,6 +4,12 @@
   url: "https://bsjuuny2026.mycafe24.com/krxwatch/"
   stack: ["JavaScript", "Matter.js", "Market Data"]
 
+- name: "KOSPI/KOSDAQ 지표 랭킹"
+  category: "Finance"
+  summary: "금융위원회 일별 주식시세와 OpenDART 공시 지표를 자체 산식으로 비교하는 참고 대시보드입니다."
+  url: "https://bsjuuny2026.mycafe24.com/krstock/"
+  stack: ["Python", "JavaScript", "Public Data"]
+
 - name: "Culture Hub"
   category: "Culture"
   summary: "서울의 문화·관광·맛집·카페·키즈·공연·전시 정보를 탐색하고 코스를 추천하는 서비스입니다."
@@ -22,6 +28,12 @@
   url: "https://bsjuuny2026.mycafe24.com/artfinder/"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
 
+- name: "AnimeFinder"
+  category: "Entertainment"
+  summary: "AniList와 TMDB 출처를 명시하고 트렌딩·평점·방영 예정 정보를 탐색하는 비상업적 서비스입니다."
+  url: "https://bsjuuny2026.mycafe24.com/animefinder/"
+  stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
+
 - name: "하루결"
   category: "Lifestyle"
   summary: "서울·경기 지역의 장소를 조합해 하루 코스를 추천하는 서비스입니다."
@@ -38,6 +50,12 @@
   category: "Productivity"
   summary: "어린이집·유치원 공지문에서 준비물, 일정과 부모가 할 일을 정리하는 도구입니다."
   url: "https://bsjuuny2026.mycafe24.com/gongjitalk/"
+  stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
+
+- name: "유어픽"
+  category: "Kids & Education"
+  summary: "유치원 알리미와 어린이집 정보공개 포털의 공시 항목을 한눈에 비교하는 탐색 서비스입니다."
+  url: "https://bsjuuny2026.mycafe24.com/yourpick/"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
 
 - name: "진료메모"
