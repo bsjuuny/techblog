@@ -15,6 +15,8 @@
   summary: "서울의 문화·관광·맛집·카페·키즈·공연·전시 정보를 탐색하고 코스를 추천하는 서비스입니다."
   url: "https://bsjuuny2026.mycafe24.com/culturehub/"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
+  case_study_url: "/project/automation/culture-hub-automated-content-pipeline/"
+  samples_url: "/categories/#culture-hub"
 
 - name: "KOPIS Arts"
   category: "Culture"

@@ -21,6 +21,9 @@ classes: wide portfolio-page
 <div class="project-grid live-project-grid">
 {% for project in site.data.live_projects %}
   <article class="project-card live-project-card">
+    {% if project.image %}
+    <img class="project-card__thumb" src="{{ project.image | relative_url }}" alt="{{ project.name }} 미리보기" loading="lazy">
+    {% endif %}
     <p class="project-meta">{{ project.category }} · LIVE</p>
     <h3>{{ project.name }}</h3>
     <p>{{ project.summary }}</p>
@@ -31,6 +34,12 @@ classes: wide portfolio-page
     </ul>
     <p class="project-card__links">
       <a class="text-link" href="{{ project.url }}" target="_blank" rel="noopener noreferrer">서비스 보기 <span aria-hidden="true">↗</span></a>
+      {% if project.case_study_url %}
+      <a class="text-link" href="{{ project.case_study_url | relative_url }}">제작기 보기</a>
+      {% endif %}
+      {% if project.samples_url %}
+      <a class="text-link" href="{{ project.samples_url | relative_url }}">생성물 보기</a>
+      {% endif %}
     </p>
   </article>
 {% endfor %}

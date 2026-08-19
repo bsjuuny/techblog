@@ -215,8 +215,9 @@ summary:focus-visible {
 .expertise-grid article,
 .project-card,
 .topic-card {
+  --card-padding: clamp(1.25rem, 3vw, 1.8rem);
   min-width: 0;
-  padding: clamp(1.25rem, 3vw, 1.8rem);
+  padding: var(--card-padding);
   border: 1px solid var(--portfolio-line);
   border-radius: 0.35rem;
   background: var(--portfolio-white);
@@ -252,6 +253,15 @@ summary:focus-visible {
 
 .live-project-card .tag-list {
   margin-top: 1.1rem;
+}
+
+.project-card__thumb {
+  display: block;
+  width: calc(100% + var(--card-padding) * 2);
+  aspect-ratio: 4 / 3;
+  margin: calc(var(--card-padding) * -1) calc(var(--card-padding) * -1) 1rem;
+  border-radius: 0.35rem 0.35rem 0 0;
+  object-fit: cover;
 }
 
 .project-card .project-card__links {
@@ -662,4 +672,56 @@ summary:focus-visible {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+.sample-note {
+  color: var(--portfolio-muted);
+  font-size: 0.9rem;
+}
+
+.sample-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin: 1.5rem 0 2.5rem;
+}
+
+.sample-image-grid figure {
+  margin: 0;
+}
+
+.sample-image-grid img {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--portfolio-line);
+  border-radius: 0.35rem;
+}
+
+.sample-image-grid figcaption {
+  margin-top: 0.5rem;
+  color: var(--portfolio-muted);
+  font-size: 0.85rem;
+}
+
+.sample-pdf-list {
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.pdf-sample {
+  padding: clamp(1.1rem, 2.5vw, 1.5rem);
+  border: 1px solid var(--portfolio-line);
+  border-radius: 0.35rem;
+  background: var(--portfolio-white);
+}
+
+.pdf-sample__label {
+  margin: 0 0 0.35rem;
+  color: var(--portfolio-navy);
+}
+
+.pdf-sample__desc {
+  margin: 0 0 1rem;
+  color: var(--portfolio-muted);
 }
