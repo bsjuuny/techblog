@@ -4,3 +4,5 @@ _site/
 .jekyll-cache/
 .jekyll-metadata
 .sass-cache/
+.env
+scripts/__pycache__/
