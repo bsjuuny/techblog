@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import html
 import json
 import os
 import re
@@ -86,6 +87,43 @@ def fetch_github_trending(n: int = 8) -> list[dict[str, Any]]:
     ]
 
 
+_META_DESC_RE = re.compile(
+    r'<meta[^>]+(?:property=["\']og:description["\']|name=["\']description["\'])'
+    r'[^>]+content=["\']([^"\']+)["\']',
+    re.IGNORECASE,
+)
+_META_DESC_RE_ALT = re.compile(
+    r'<meta[^>]+content=["\']([^"\']+)["\']'
+    r'[^>]+(?:property=["\']og:description["\']|name=["\']description["\'])',
+    re.IGNORECASE,
+)
+
+
+def _fetch_article_summary(url: str, timeout: int = 8) -> str:
+    """기사 원문 페이지의 meta description을 실제로 가져온다.
+
+    HN 헤드라인만으로는 배경/맥락을 설명할 근거가 없어 코멘트가 표면적인 요약에
+    그치는 문제가 있었다 — 이 설명을 재료로 추가해 생성 에이전트가 지어내지 않고도
+    "왜 이게 이슈인지"를 구체적으로 쓸 수 있게 한다. 페이지 하나가 실패해도(차단,
+    타임아웃, meta 태그 없음 등) 헤드라인만으로 계속 진행 가능하므로 빈 문자열을
+    반환하고 사유만 로그에 남긴다.
+    """
+    try:
+        resp = requests.get(
+            url, timeout=timeout,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; techblog-bot/1.0)"},
+        )
+        resp.raise_for_status()
+        page = resp.text[:200_000]  # 과도하게 큰 페이지 방지
+        m = _META_DESC_RE.search(page) or _META_DESC_RE_ALT.search(page)
+        if not m:
+            return ""
+        return html.unescape(m.group(1)).strip()[:400]
+    except Exception as e:
+        print(f"[DAILY_POST]   기사 설명 수집 실패({url}): {e}")
+        return ""
+
+
 def fetch_hackernews_top(n: int = 8) -> list[dict[str, Any]]:
     """Hacker News 공식 API로 오늘의 top 스토리를 가져온다 (무료, 키 불필요)."""
     ids = requests.get("https://hacker-news.firebaseio.com/v0/topstories.json", timeout=20).json()[:20]
@@ -105,6 +143,8 @@ def fetch_hackernews_top(n: int = 8) -> list[dict[str, Any]]:
         })
         if len(items) >= n:
             break
+    for item in items:
+        item["description"] = _fetch_article_summary(item["url"])
     return items
 
 
@@ -165,22 +205,40 @@ def generate_draft_til(sources: list[dict[str, Any]], pick_rank: int = 0) -> dic
 
 
 def generate_draft_news(sources: list[dict[str, Any]]) -> dict[str, Any]:
-    source_block = "\n".join(f"- {s['title']} (score {s['score']}) — {s['url']}" for s in sources)
+    def _source_line(s: dict[str, Any]) -> str:
+        line = f"- {s['title']} (score {s['score']}) — {s['url']}"
+        if s.get("description"):
+            line += f"\n  기사 설명: {s['description']}"
+        return line
+
+    source_block = "\n".join(_source_line(s) for s in sources)
     prompt = (
         "당신은 Frontend 개발자를 위한 기술 블로그 필자입니다. 아래는 실제 Hacker News API에서 "
-        "가져온 오늘의 top 스토리 헤드라인 목록입니다 (실제 헤드라인과 링크입니다).\n\n"
+        "가져온 오늘의 top 스토리 헤드라인 목록입니다 (실제 헤드라인과 링크이며, 일부는 원문 "
+        "페이지에서 가져온 실제 meta description이 '기사 설명'으로 함께 달려 있습니다).\n\n"
         f"{source_block}\n\n"
         "이 중 개발자에게 흥미로울 만한 4~6개를 골라서 '오늘의 기술 뉴스 브리핑' 스타일 글을 "
         "한국어로 작성하세요.\n\n"
         "규칙 (반드시 지킬 것):\n"
-        "- 위 헤드라인에 없는 내용(구체적 수치, 발표 날짜, 세부 기능 등)은 절대 지어내지 마세요.\n"
-        "- 헤드라인 제목 자체가 전달하는 정보 수준에서만 코멘트하세요. 본문을 읽지 않고는 알 수 "
-        "없는 세부사항은 '자세한 내용은 원문 참고'라고만 언급하세요.\n"
+        "- 이번 사건 자체에 대한 구체적 세부사항(오늘 발표된 수치, 날짜, 이 기사에서만 다루는 "
+        "특정 기능 목록 등)은 위 헤드라인과 기사 설명에 없으면 절대 지어내지 마세요.\n"
+        "- 다만 사건과 무관하게 이미 널리 알려진 배경 지식(예: 유명 인물의 이력, 잘 알려진 "
+        "기술 표준/용어 설명, 공개적으로 잘 알려진 과거 사건의 개요)은 배경 설명을 위해 사용해도 "
+        "됩니다 — 이건 '지어낸 것'이 아니라 이미 공개적으로 검증된 사실이기 때문입니다. 다만 이 "
+        "배경 지식을 오늘 이 기사가 새로 주장하는 내용인 것처럼 섞어 쓰지 말고, 배경은 배경으로 "
+        "구분해서 서술하세요.\n"
+        "- '기사 설명'이 있는 항목은 그 내용을 근거로 왜 이 일이 벌어졌는지, 배경이 무엇인지, "
+        "무엇이 쟁점인지를 구체적으로 설명하세요 — 헤드라인만 반복하지 말고 기사 설명에 있는 "
+        "사실을 실제로 활용하세요. 기사 설명이 없는 항목은 헤드라인 제목이 전달하는 정보 수준"
+        "에서만 코멘트하고, 본문을 읽지 않고는 알 수 없는 세부사항은 '자세한 내용은 원문 참고'"
+        "라고만 언급하세요.\n"
         "- 각 항목마다 왜 개발자가 관심 가질 만한지, 실무에 어떤 의미가 있는지, 비슷한 사례나 "
         "배경까지 구체적인 관점을 담아 3~4문장 분량으로 코멘트하세요 (단순 요약이 아니라 "
         "'그래서 어떻다는 건지'를 충분히 풀어서 말하세요).\n"
         "- 글 맨 앞에 오늘 다룰 주제들을 아우르는 2~3문장짜리 도입부를 쓰고, 맨 뒤에는 "
-        "전체를 관통하는 흐름이나 시사점을 짚어주는 마무리 문단을 쓰세요.\n"
+        "전체를 관통하는 흐름이나 시사점을 짚어주는 마무리 문단을 쓰세요. 다만 주제들이 실제로 "
+        "무관하다면 억지로 하나의 흐름으로 엮지 말고, '오늘은 이런 다양한 소식들이 있었다' 정도로 "
+        "솔직하게 묶으세요.\n"
         "- 위 목록에 있는 URL만 사용하고, 다른 URL은 절대 만들어내지 마세요.\n"
         "- 1600~2200자 분량으로 충분히 자세하게 작성하세요.\n"
         "- 모바일에서 스캔하기 쉽도록, 각 항목의 코멘트는 한 덩어리로 몰아 쓰지 말고 "
@@ -250,7 +308,11 @@ def fact_check_agent(draft: dict[str, Any], recent_titles: list[str]) -> dict[st
         "중복충돌: PASS또는FAIL\n"
         "사유: (FAIL이 있으면 여기에, 없으면 '없음')\n\n"
         "판정 기준:\n"
-        "- 팩트: 원본 소재에 없는 구체적 사실(수치/날짜/기능명)을 지어냈으면 FAIL\n"
+        "- 팩트: '이번 사건 자체'에 대한 구체적 사실(오늘 발표된 수치/날짜/이 기사에서만 다루는 "
+        "특정 기능명 등)을 원본 소재에 없는데 지어냈으면 FAIL. 단, 사건과 무관하게 이미 널리 "
+        "알려진 배경 지식(유명 인물의 이력, 잘 알려진 기술 표준/용어, 공개적으로 검증된 과거 "
+        "사건 개요 등)을 배경 설명으로 쓴 것은 지어낸 것이 아니므로 FAIL 아님 — 단 이런 배경 "
+        "지식을 '오늘 이 기사가 새로 주장하는 내용'인 것처럼 혼동해서 서술했다면 FAIL\n"
         "- 최신성: 원본 소재 기준으로 시의성 있게 서술했으면 PASS\n"
         "- 공식출처: 본문의 링크가 원본 소재의 URL과 일치하면 PASS\n"
         "- 중복충돌: 최근 게시글과 주제가 사실상 동일하면 FAIL\n"
