@@ -134,6 +134,20 @@ summary:focus-visible {
   line-height: 1.8;
 }
 
+.hero-brief {
+  margin-top: 1.8rem;
+}
+
+.hero-brief .project-meta:not(:first-child) {
+  margin-top: 1.1rem !important;
+}
+
+.hero-note {
+  margin: 0.4rem 0 0;
+  color: var(--portfolio-muted);
+  font-size: 0.92rem;
+}
+
 .portfolio-actions {
   display: flex;
   flex-wrap: wrap;
