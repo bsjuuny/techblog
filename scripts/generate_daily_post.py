@@ -244,8 +244,11 @@ def generate_draft_news(sources: list[dict[str, Any]]) -> dict[str, Any]:
         "- 모바일에서 스캔하기 쉽도록, 각 항목의 코멘트는 한 덩어리로 몰아 쓰지 말고 "
         "2문장 단위로 줄바꿈하세요.\n"
         "- 마지막 줄에 'TITLE: '으로 시작하는, 클릭하고 싶어지는 구체적인 한국어 제목을 "
-        "30자 이내로 제시하세요 ('오늘의 기술 뉴스' 같은 밋밋한 제목 금지, 실제 다룬 "
-        "내용 중 가장 흥미로운 포인트를 제목에 담으세요).\n"
+        "30자 이내로 제시하세요. 이 글은 여러 소식을 묶은 브리핑이므로, 가장 흥미로운 "
+        "포인트를 앞세우되 제목만 보고 '이건 그 주제 하나만 다루는 단독 기사구나'라고 "
+        "오해하게 만들지 마세요 — '~외', '~등', 다룬 개수를 넣는 식으로 여러 소식을 "
+        "묶었다는 게 제목에서부터 드러나야 합니다 (예: '로컬 LLM이 멍청해 보이는 이유 외 "
+        "오늘의 개발 뉴스 4가지'). '오늘의 기술 뉴스' 같은 밋밋한 제목도 금지입니다.\n"
         "- 반드시 한국어로만 작성하세요. 중국어 한자나 다른 언어 단어를 절대 섞지 마세요.\n"
     )
     text = _claude(prompt, effort="medium")
@@ -323,7 +326,30 @@ def fact_check_agent(draft: dict[str, Any], recent_titles: list[str]) -> dict[st
 
 # ── 6. 품질 검증 에이전트 ───────────────────────────────────────────────
 
-def quality_check_agent(draft: dict[str, Any]) -> dict[str, Any]:
+def quality_check_agent(draft: dict[str, Any], content_type: str) -> dict[str, Any]:
+    # "검색의도" 기준을 콘텐츠 형식별로 다르게 준다 — 완화가 아니라 애초에 다른 종류의
+    # 글에 같은 잣대를 잘못 대고 있었던 것을 바로잡는 것이다. til(단일 저장소/도구를
+    # 다루는 글)은 "이 도구 뭐야" 같은 단일 검색 의도가 실제로 있으므로 기존 기준이
+    # 맞다. news(여러 소식을 묶은 브리핑)는 애초에 단일 검색 의도가 존재하지 않는
+    # 포맷인데도 같은 기준을 적용하다 보니, 실측(2026-08-23) 5번 생성 중 5번 모두
+    # "검색의도 FAIL"로 걸렸다 — 팩트체크는 매번 통과했고 실제 본문을 사람이 읽어봐도
+    # 내용 자체는 정상이었으므로, 글이 나쁜 게 아니라 이 형식에 안 맞는 기준을 대고
+    # 있었다고 판단했다. 브리핑 형식에 맞는 기준으로 바꾸되, 여전히 실제로 판정해서
+    # FAIL이 나올 수 있는 진짜 기준이어야 한다(무조건 PASS로 만들면 검증 자체가
+    # 무의미해지므로).
+    if content_type == "news":
+        search_intent_criterion = (
+            "- 검색의도: 이 글은 여러 소식을 묶은 '오늘의 기술 뉴스 브리핑' 형식입니다. "
+            "'이 라이브러리 어떻게 쓰지'처럼 단일 주제에 답하는 검색 의도가 아니라, "
+            "'오늘의 개발자 뉴스', '이번주 기술 동향'처럼 브리핑/모아보기를 찾는 검색 "
+            "의도를 기준으로 판단하세요. 제목과 도입부가 그런 의도의 독자에게 매력적이고, "
+            "각 항목이 헤드라인만 반복하지 않고 실제 맥락·의미를 짚어주면 PASS. 반대로 "
+            "항목들이 서로 무관하게 나열만 되어 있어 브리핑으로서 응집력이나 가치가 "
+            "없으면, 또는 개별 항목들이 표면적 요약에 그치면 FAIL.\n"
+        )
+    else:
+        search_intent_criterion = "- 검색의도: 제목과 본문이 검색 사용자의 의도에 부합하면 PASS\n"
+
     prompt = (
         "당신은 네이버 블로그 SEO와 모바일 UX에 정통한 콘텐츠 품질 에디터입니다. "
         "아래 글을 검수하세요.\n\n"
@@ -335,9 +361,10 @@ def quality_check_agent(draft: dict[str, Any]) -> dict[str, Any]:
         "제목/CTR: 0-100 사이 숫자\n"
         "네이버SEO: 0-100 사이 숫자\n"
         "모바일UX: 0-100 사이 숫자\n"
-        "차별성: 0-100 사이 숫자\n\n"
+        "차별성: 0-100 사이 숫자\n"
+        "사유: (검색의도가 FAIL이면 왜 그런지 한 줄로, PASS면 '없음')\n\n"
         "판정 기준:\n"
-        "- 검색의도: 제목과 본문이 검색 사용자의 의도에 부합하면 PASS\n"
+        f"{search_intent_criterion}"
         "- 반복제거: 같은 표현/문장이 불필요하게 반복되면 FAIL\n"
         "- 제목/CTR: 클릭을 유도하면서도 과장되지 않은 제목이면 높은 점수\n"
         "- 네이버SEO: 키워드 배치, 문단 길이, 소제목 구조가 네이버 검색에 적합하면 높은 점수\n"
@@ -497,7 +524,7 @@ def _generate_valid_draft(content_type: str, sources: list[dict[str, Any]],
             print(f"[DAILY_POST]   팩트 검증 실패, 재시도: {fact_result.get('_reason')}")
             continue
 
-        quality_result = quality_check_agent(draft)
+        quality_result = quality_check_agent(draft, content_type)
         quality_pass = (
             quality_result["검색의도"] and quality_result["반복제거"]
             and all(quality_result[k] >= SCORE_THRESHOLD for k in ("제목/CTR", "네이버SEO", "모바일UX", "차별성"))
@@ -512,6 +539,34 @@ def _generate_valid_draft(content_type: str, sources: list[dict[str, Any]],
     return None
 
 
+# ── 9. watchdog 상태 마커 ──────────────────────────────────────────────
+# scheduler/watchdog.mjs의 CRITICAL_TASKS가 다른 작업들(tg-report 등)과 동일한
+# 방식(scheduler/status/<name>-YYYYMMDD.json 존재 여부)으로 "오늘 이 파이프라인이
+# 실제로 실행됐는지"를 판단한다. 발행 여부(published)와 무관하게 매 실행마다
+# 기록한다 — 품질/팩트 검증 기준 미달로 "오늘은 조용히 건너뜀"은 이 스크립트의
+# 의도된 정상 종료 상태(발행 강제 안 함)이므로, watchdog이 이를 "실패"로 오인해
+# 억지로 재시도(추가 API 비용 + 중복 발행 위험)하면 안 된다. 반대로 크론 자체가
+# 아예 트리거되지 않은 날은 이 파일이 없으므로 watchdog이 정확히 그 경우만
+# 감지해 강제 실행한다 (2026-08-23 실제로 이 문제가 발생 — 크론이 조용히
+# 안 돌았는데 감지할 방법이 없었음).
+_STATUS_DIR = Path("C:/github/scheduler/status")
+
+
+def write_watchdog_status_marker(published: bool, reason: str) -> None:
+    try:
+        _STATUS_DIR.mkdir(parents=True, exist_ok=True)
+        date_key = dt.date.today().strftime("%Y%m%d")
+        (_STATUS_DIR / f"techblog-{date_key}.json").write_text(
+            json.dumps(
+                {"ranAt": dt.datetime.now().isoformat(), "published": published, "reason": reason},
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+    except Exception as e:
+        print(f"[DAILY_POST] watchdog 상태 마커 기록 실패(무시하고 계속): {e}")
+
+
 # ── 메인 ───────────────────────────────────────────────────────────────
 
 def run(target_date: Optional[dt.date] = None) -> None:
@@ -523,12 +578,14 @@ def run(target_date: Optional[dt.date] = None) -> None:
         sources = fetch_github_trending() if content_type == "til" else fetch_hackernews_top()
     except Exception as e:
         print(f"[DAILY_POST] 소재 수집 실패, 오늘은 건너뜀: {e}")
+        write_watchdog_status_marker(False, f"소재 수집 실패: {e}")
         return
 
     recent_titles = get_recent_titles()
     draft = _generate_valid_draft(content_type, sources, recent_titles)
     if draft is None:
         print(f"[DAILY_POST] {MAX_ATTEMPTS}번 시도 모두 검증 실패, 오늘은 발행을 건너뜀")
+        write_watchdog_status_marker(False, f"{MAX_ATTEMPTS}번 시도 모두 검증 실패")
         return
 
     path = write_post(draft, content_type, target_date)
@@ -537,8 +594,10 @@ def run(target_date: Optional[dt.date] = None) -> None:
     try:
         commit_and_push(path)
         print("[DAILY_POST] git commit/push 완료 — 발행됨")
+        write_watchdog_status_marker(True, "발행 완료")
     except Exception as e:
         print(f"[DAILY_POST] git 발행 실패: {e}")
+        write_watchdog_status_marker(False, f"git 발행 실패: {e}")
 
 
 if __name__ == "__main__":
