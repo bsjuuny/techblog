@@ -33,12 +33,23 @@ summary:focus-visible {
   color: var(--portfolio-navy);
 }
 
+#main {
+  width: 90%;
+  max-width: none;
+}
+
 .page {
   padding-right: 0;
 }
 
+.wide .page,
+.portfolio-home {
+  width: 100%;
+}
+
 .page__inner-wrap {
-  max-width: 74rem;
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
 }
 
@@ -616,8 +627,8 @@ summary:focus-visible {
 }
 
 @media (max-width: 64rem) {
-  .page__inner-wrap {
-    max-width: none;
+  #main {
+    width: 100%;
   }
 
   .journey-list,
