@@ -47,6 +47,30 @@ classes: wide portfolio-page
 
 <hr class="section-divider">
 
+## Open Source Tools
+
+배포된 웹 서비스는 아니지만, GitHub에 공개해 직접 사용하고 있는 CLI/개발 도구입니다.
+
+<div class="project-grid">
+{% for project in site.data.open_source %}
+  <article class="project-card">
+    <p class="project-meta">OPEN SOURCE</p>
+    <h3>{{ project.name }}</h3>
+    <p>{{ project.summary }}</p>
+    <ul class="tag-list" aria-label="{{ project.name }} 기술 스택">
+    {% for tech in project.stack %}
+      <li>{{ tech }}</li>
+    {% endfor %}
+    </ul>
+    <p class="project-card__links">
+      <a class="text-link" href="{{ project.url }}" target="_blank" rel="noopener noreferrer">GitHub 보기 <span aria-hidden="true">↗</span></a>
+    </p>
+  </article>
+{% endfor %}
+</div>
+
+<hr class="section-divider">
+
 ## Selected Client Work
 
 고객사 프로젝트의 내부 정보나 확인되지 않은 성과 수치·리딩 범위는 포함하지 않았습니다.

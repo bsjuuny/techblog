@@ -1,0 +1,4 @@
+- name: "AI Dispatcher"
+  summary: "Claude Code, Codex, 로컬 LLM(Ollama/llama.cpp) 사이에서 코딩 작업을 라우팅하고, 실제 build/test/lint로 결과를 검증한 뒤 독립된 AI가 변경 사항을 교차 검토하는 CLI 컨트롤 플레인입니다."
+  url: "https://github.com/bsjuuny/portable-ai-dispatcher"
+  stack: ["TypeScript", "Node.js", "Claude Code", "Codex", "Ollama", "llama.cpp"]
