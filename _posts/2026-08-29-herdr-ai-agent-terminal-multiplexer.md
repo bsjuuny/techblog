@@ -58,7 +58,19 @@ brew install herdr
 mise use -g herdr
 ```
 
-Windows용 PowerShell 설치 프로그램도 별도로 제공된다. 설치 후에는 작업 디렉터리에서 다음 명령으로 시작한다.
+Windows는 [별도 베타 지원 문서](https://herdr.dev/docs/windows-beta/)가 있으며, PowerShell 한 줄 명령으로 설치한다.
+
+```powershell
+# PowerShell (권장)
+powershell -ExecutionPolicy Bypass -c "irm https://herdr.dev/install.ps1 | iex"
+
+# 보안 정책 때문에 PowerShell이 막히면 명령 프롬프트에서
+curl.exe -fsSLo install.cmd https://herdr.dev/install.cmd && install.cmd && del install.cmd
+```
+
+Windows Terminal, PowerShell 앱, Windows용 Alacritty, `cmd.exe` 패널을 지원하지만, 문서에는 원격 대상 호스트로는 아직 Windows를 지정할 수 없고(원격 호스트는 Linux나 macOS여야 한다) 일부 키 입력·커서 렌더링이 베타 단계의 제약을 받는다고 명시되어 있다.
+
+설치 후에는 작업 디렉터리에서 다음 명령으로 시작한다.
 
 ```bash
 herdr
@@ -93,3 +105,5 @@ Herdr는 Electron 기반 GUI 앱이 아니라 단일 Rust 바이너리로 배포
 - [GitHub: herdrdev/herdr](https://github.com/herdrdev/herdr)
 - [공식 사이트: herdr.dev](https://herdr.dev)
 - [Herdr 공식 문서](https://herdr.dev/docs)
+- [설치 가이드](https://herdr.dev/docs/install/)
+- [Windows 지원(베타) 문서](https://herdr.dev/docs/windows-beta/)
