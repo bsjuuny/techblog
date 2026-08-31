@@ -582,14 +582,16 @@ def write_post(draft: dict[str, Any], content_type: str, target_date: dt.date) -
         "---\n\n"
     )
 
+    # "기록"(받침 있음 -> 을)과 "데이터"(받침 없음 -> 를)는 조사가 달라서, 공통 접미사에
+    # 갖다 붙이지 않고 조사까지 포함해 분기한다.
     source_description = (
-        "필자가 실제 작업한 프로젝트의 git 커밋 기록"
+        "필자가 실제 작업한 프로젝트의 git 커밋 기록을"
         if content_type == "engineering"
-        else "실제 공개 API(GitHub/Hacker News)에서 가져온 데이터"
+        else "실제 공개 API(GitHub/Hacker News)에서 가져온 데이터를"
     )
     disclosure = (
         "> **자동 생성 안내**  \n"
-        f"> 이 글은 매일 정해진 시각에 {source_description}를 "
+        f"> 이 글은 매일 정해진 시각에 {source_description} "
         "근거로 AI(Claude)가 자동으로 작성하고, 자동 검수(팩트·SEO·UX 기준)를 통과한 뒤 사람의 "
         "사전 검토 없이 자동 발행됩니다. 오류가 있을 수 있습니다.\n"
         "{: .notice--warning}\n\n"
