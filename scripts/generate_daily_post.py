@@ -1,11 +1,14 @@
 """매일 techblog에 자동으로 글 1개를 생성·검수·발행한다.
 
 구조:
-  1. 오늘의 콘텐츠 유형 결정 (짝/홀수일 교대: 개발/기술 TIL vs 테크 뉴스/트렌드)
-  2. 실제 무료 공식 API에서 소재를 가져온다 (GitHub Search API / Hacker News API) —
-     소재 자체는 항상 코드가 직접 가져온 실제 데이터여야 하고, LLM은 이 소재를
-     "요약/설명"만 하고 새로운 사실을 지어내지 않는다 (모델을 Claude로 바꿔도 이
-     원칙은 그대로 유지 — 검증 가능성이 목적이라 굳이 LLM이 직접 검색하게 하지 않음).
+  1. 오늘의 콘텐츠 유형 결정 (일요일: 실제 프로젝트 개발기 / 나머지 요일: 짝·홀수일
+     교대로 개발·기술 TIL vs 테크 뉴스·트렌드). 일요일에 근거가 될 만한 커밋이 없으면
+     조용히 til/news로 대체한다 (억지 발행 금지 원칙은 이 슬롯에도 그대로 적용).
+  2. 실제 무료 공식 API(GitHub Search API / Hacker News API)나 로컬 git 커밋 기록에서
+     소재를 가져온다 — 소재 자체는 항상 코드가 직접 가져온 실제 데이터여야 하고,
+     LLM은 이 소재를 "요약/설명"만 하고 새로운 사실을 지어내지 않는다 (모델을 Claude로
+     바꿔도 이 원칙은 그대로 유지 — 검증 가능성이 목적이라 굳이 LLM이 직접 검색하게
+     하지 않음).
   3. 생성 에이전트(Claude): 주어진 소재만 근거로 초안 작성.
   4. 코드 레벨 검증: 초안에 들어간 모든 링크가 실제로 가져온 소재의 URL 목록에
      있는지 대조 — 없는 링크(=지어낸 것)가 하나라도 있으면 그 자리에서 발행 중단.
@@ -59,6 +62,15 @@ RECENT_DAYS_FOR_DUP_CHECK = 21
 # ── 1. 오늘의 콘텐츠 유형 ──────────────────────────────────────────────
 
 def pick_content_type(target_date: dt.date) -> str:
+    # 일요일은 실제 프로젝트 커밋 기반 개발기(engineering) 슬롯 - 나머지 요일은 기존
+    # til/news 홀짝 교대 그대로. 일요일에 근거가 될 만한 커밋이 없으면 run()이
+    # _fallback_content_type()으로 til/news에 넘긴다 (억지 발행 금지 원칙 유지).
+    if target_date.weekday() == 6:
+        return "engineering"
+    return _fallback_content_type(target_date)
+
+
+def _fallback_content_type(target_date: dt.date) -> str:
     return "til" if target_date.toordinal() % 2 == 0 else "news"
 
 
@@ -146,6 +158,79 @@ def fetch_hackernews_top(n: int = 8) -> list[dict[str, Any]]:
     for item in items:
         item["description"] = _fetch_article_summary(item["url"])
     return items
+
+
+PROJECT_REPOS_ROOT = Path("C:/github")
+# techblog 자신은 제외한다 - 이 저장소의 커밋은 대부분 "글 추가"류라 개발기 소재로
+# 부적합하고, 파이프라인이 자기 자신을 소재로 삼으면 혼란스럽다.
+_ENGINEERING_EXCLUDED_REPOS = {"techblog"}
+# 한 줄짜리 커밋은 "왜 이렇게 했는지" 서술할 근거가 없어 모델이 지어내기 쉽다 - til의
+# description 길이 필터(>=20자)와 같은 이유로, 본문이 충분히 긴 커밋만 후보로 삼는다.
+_ENGINEERING_MIN_BODY_LENGTH = 80
+
+
+def _github_commit_url(repo_dir: Path, sha: str) -> str:
+    """origin이 github.com 리모트면 실제 커밋 URL을, 아니면(비공개/로컬 전용 저장소)
+    빈 문자열을 반환한다 - 빈 문자열이면 생성 프롬프트가 링크를 아예 안 쓰도록 한다."""
+    try:
+        remote = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=repo_dir, check=True, capture_output=True, text=True, encoding="utf-8",
+        ).stdout.strip()
+    except Exception:
+        return ""
+    m = re.search(r"github\.com[:/]([\w.-]+/[\w.-]+?)(?:\.git)?$", remote)
+    return f"https://github.com/{m.group(1)}/commit/{sha}" if m else ""
+
+
+def fetch_project_commits(days: int = 7, n: int = 8) -> list[dict[str, Any]]:
+    """지난 며칠간의 실제 git 커밋 기록에서 소재를 가져온다(무료, 로컬 git log만 사용,
+    API 키 불필요). C:/github 아래의 모든 git 저장소를 대상으로 하되, 본문이 짧은
+    (서술 근거가 없는) 커밋은 후보에서 제외한다."""
+    if not PROJECT_REPOS_ROOT.exists():
+        return []
+    since = (dt.date.today() - dt.timedelta(days=days)).isoformat()
+    candidates: list[dict[str, Any]] = []
+    for repo_dir in sorted(PROJECT_REPOS_ROOT.iterdir()):
+        if not repo_dir.is_dir() or repo_dir.name in _ENGINEERING_EXCLUDED_REPOS:
+            continue
+        if not (repo_dir / ".git").exists():
+            continue
+        try:
+            log = subprocess.run(
+                ["git", "log", f"--since={since}", "--no-merges", "--format=%H%x1f%s%x1f%b%x1e"],
+                cwd=repo_dir, check=True, capture_output=True, text=True, encoding="utf-8",
+            ).stdout
+        except Exception:
+            continue
+        for entry in log.split("\x1e"):
+            entry = entry.strip()
+            if not entry:
+                continue
+            parts = entry.split("\x1f")
+            if len(parts) < 2:
+                continue
+            sha, subject = parts[0], parts[1]
+            body = parts[2].strip() if len(parts) > 2 else ""
+            if len(body) < _ENGINEERING_MIN_BODY_LENGTH:
+                continue
+            try:
+                files_changed = subprocess.run(
+                    ["git", "show", "--stat", "--format=", sha],
+                    cwd=repo_dir, check=True, capture_output=True, text=True, encoding="utf-8",
+                ).stdout.strip()
+            except Exception:
+                files_changed = ""
+            candidates.append({
+                "repo": repo_dir.name,
+                "sha": sha,
+                "title": f"{repo_dir.name}: {subject}",
+                "body": body,
+                "files_changed": files_changed,
+                "url": _github_commit_url(repo_dir, sha),
+                "description": body,  # generate_draft_til과 필드명을 맞춰 길이 랭킹 로직을 재사용
+            })
+    return candidates
 
 
 # ── 3. 생성 에이전트 ───────────────────────────────────────────────────
@@ -256,6 +341,43 @@ def generate_draft_news(sources: list[dict[str, Any]]) -> dict[str, Any]:
     return {"title": title, "body": body, "sources": sources, "picked": None}
 
 
+def generate_draft_engineering(commits: list[dict[str, Any]], pick_rank: int = 0) -> dict[str, Any]:
+    # til과 동일한 이유로 본문이 긴 순으로 정렬해서 고른다 - 재시도 시 pick_rank로
+    # 다른 커밋으로 바꿔볼 수 있다.
+    ranked = sorted(commits, key=lambda c: -len(c.get("body") or ""))
+    picked = ranked[min(pick_rank, len(ranked) - 1)]
+    url_instruction = (
+        f"- 커밋 링크는 정확히 이 URL만 사용하세요: {picked['url']}\n다른 URL은 절대 만들어내지 마세요.\n"
+        if picked.get("url")
+        else "- 이 저장소는 공개 링크가 없습니다. URL을 만들어내지 말고 링크 없이 서술하세요.\n"
+    )
+    prompt = (
+        "당신은 실무 개발자를 위한 기술 블로그 필자입니다. 아래는 필자가 실제로 작업한 "
+        f"프로젝트({picked['repo']})의 실제 git 커밋 기록입니다.\n\n"
+        f"커밋 메시지 제목: {picked['title']}\n"
+        f"커밋 메시지 본문:\n{picked['body']}\n\n"
+        f"변경된 파일:\n{picked['files_changed']}\n\n"
+        "이 커밋을 소재로, 실제로 겪은 문제와 해결 과정을 1인칭 트러블슈팅 개발기 형식으로 "
+        "한국어로 작성하세요.\n\n"
+        "규칙 (반드시 지킬 것):\n"
+        "- 위 커밋 메시지와 변경된 파일 목록에 있는 내용만 사실로 다루세요. 구체적인 수치, "
+        "에러 메시지, 원인처럼 위에 없는 세부사항은 절대 지어내지 마세요.\n"
+        f"- 저장소 이름({picked['repo']})과 커밋 내용만으로 알 수 있는 범위에서만 서술하고, "
+        "비즈니스 맥락이나 회사명처럼 커밋에 없는 정보는 지어내지 마세요.\n"
+        "- '어떤 문제가 있었는지 → 어떻게 원인을 찾았는지 → 어떻게 고쳤는지' 흐름으로 "
+        "구체적으로 쓰되, 커밋 메시지에 이미 있는 근거를 재구성하는 것이지 새로운 서사를 "
+        "지어내는 게 아닙니다.\n"
+        "- 마크다운 소제목(##)을 3~4개 사용하고, 1200~1800자 분량으로 작성하세요.\n"
+        "- 모바일에서 스캔하기 쉽도록, 각 소제목 아래 문단은 2~3문장으로 짧게 끊으세요.\n"
+        f"{url_instruction}"
+        "- 마지막 줄에 'TITLE: '으로 시작하는 30자 이내의 매력적인 한국어 제목을 별도로 제시하세요.\n"
+        "- 반드시 한국어로만 작성하세요. 중국어 한자나 다른 언어 단어를 절대 섞지 마세요.\n"
+    )
+    text = _claude(prompt, effort="medium")
+    title, body = _split_title(text)
+    return {"title": title, "body": body, "sources": commits, "picked": picked}
+
+
 def _split_title(text: str) -> tuple[str, str]:
     m = re.search(r"TITLE:\s*(.+)", text)
     title = m.group(1).strip().strip('"') if m else "오늘의 기술 노트"
@@ -347,6 +469,13 @@ def quality_check_agent(draft: dict[str, Any], content_type: str) -> dict[str, A
             "항목들이 서로 무관하게 나열만 되어 있어 브리핑으로서 응집력이나 가치가 "
             "없으면, 또는 개별 항목들이 표면적 요약에 그치면 FAIL.\n"
         )
+    elif content_type == "engineering":
+        search_intent_criterion = (
+            "- 검색의도: 이 글은 실제로 겪은 문제를 해결한 트러블슈팅/개발기입니다. "
+            "'~오류 원인', '~안 되는 이유', '~해결 방법'처럼 구체적인 문제 해결을 찾는 검색 "
+            "의도를 기준으로 판단하세요. 실제 원인과 해결 과정이 구체적으로 서술되어 있으면 "
+            "PASS. 커밋 메시지를 표면적으로 나열만 하고 실제 원인·해결 흐름이 안 보이면 FAIL.\n"
+        )
     else:
         search_intent_criterion = "- 검색의도: 제목과 본문이 검색 사용자의 의도에 부합하면 PASS\n"
 
@@ -425,9 +554,17 @@ def write_post(draft: dict[str, Any], content_type: str, target_date: dt.date) -
     filename = f"{target_date.isoformat()}-{slug}.md"
     path = POSTS_DIR / filename
 
-    category = "devlog" if content_type == "til" else "news"
-    category_label = "Dev Log · Auto" if content_type == "til" else "Tech News · Auto"
-    tags = ["Auto Generated"] + ([draft["picked"]["language"]] if draft.get("picked") and draft["picked"].get("language") else [])
+    if content_type == "til":
+        category, category_label = "devlog", "Dev Log · Auto"
+    elif content_type == "engineering":
+        # til도 "devlog" 카테고리를 이미 쓰고 있어(다른 저장소 트렌드 소개 글) 이름이
+        # 겹치면 안 된다 - 실제 자기 프로젝트 커밋 기반 글은 별도 카테고리로 구분한다.
+        category, category_label = "engineering", "Engineering Log · Auto"
+    else:
+        category, category_label = "news", "Tech News · Auto"
+    picked = draft.get("picked") or {}
+    extra_tag = picked.get("language") or picked.get("repo")
+    tags = ["Auto Generated"] + ([extra_tag] if extra_tag else [])
 
     source_links = "\n".join(f"- [{s['title']}]({s['url']})" for s in draft["sources"] if s.get("url"))
 
@@ -445,9 +582,14 @@ def write_post(draft: dict[str, Any], content_type: str, target_date: dt.date) -
         "---\n\n"
     )
 
+    source_description = (
+        "필자가 실제 작업한 프로젝트의 git 커밋 기록"
+        if content_type == "engineering"
+        else "실제 공개 API(GitHub/Hacker News)에서 가져온 데이터"
+    )
     disclosure = (
         "> **자동 생성 안내**  \n"
-        "> 이 글은 매일 정해진 시각에 실제 공개 API(GitHub/Hacker News)에서 가져온 데이터를 "
+        f"> 이 글은 매일 정해진 시각에 {source_description}를 "
         "근거로 AI(Claude)가 자동으로 작성하고, 자동 검수(팩트·SEO·UX 기준)를 통과한 뒤 사람의 "
         "사전 검토 없이 자동 발행됩니다. 오류가 있을 수 있습니다.\n"
         "{: .notice--warning}\n\n"
@@ -495,9 +637,13 @@ def _generate_valid_draft(content_type: str, sources: list[dict[str, Any]],
     for attempt in range(1, MAX_ATTEMPTS + 1):
         print(f"[DAILY_POST] 생성 시도 {attempt}/{MAX_ATTEMPTS}")
         try:
-            # 매 시도마다 다른 저장소를 골라본다 (같은 주제가 계속 실패하는 경우 대비).
-            draft = (generate_draft_til(sources, pick_rank=attempt - 1) if content_type == "til"
-                     else generate_draft_news(sources))
+            # 매 시도마다 다른 저장소/커밋을 골라본다 (같은 주제가 계속 실패하는 경우 대비).
+            if content_type == "til":
+                draft = generate_draft_til(sources, pick_rank=attempt - 1)
+            elif content_type == "engineering":
+                draft = generate_draft_engineering(sources, pick_rank=attempt - 1)
+            else:
+                draft = generate_draft_news(sources)
         except Exception as e:
             print(f"[DAILY_POST]   생성 호출 실패(타임아웃 등), 재시도: {e}")
             continue
@@ -574,15 +720,33 @@ def run(target_date: Optional[dt.date] = None) -> None:
     content_type = pick_content_type(target_date)
     print(f"[DAILY_POST] {target_date.isoformat()} 콘텐츠 유형: {content_type}")
 
-    try:
-        sources = fetch_github_trending() if content_type == "til" else fetch_hackernews_top()
-    except Exception as e:
-        print(f"[DAILY_POST] 소재 수집 실패, 오늘은 건너뜀: {e}")
-        write_watchdog_status_marker(False, f"소재 수집 실패: {e}")
-        return
-
     recent_titles = get_recent_titles()
-    draft = _generate_valid_draft(content_type, sources, recent_titles)
+    draft = None
+
+    if content_type == "engineering":
+        try:
+            commits = fetch_project_commits()
+        except Exception as e:
+            print(f"[DAILY_POST] 커밋 소재 수집 실패: {e}")
+            commits = []
+        if commits:
+            draft = _generate_valid_draft("engineering", commits, recent_titles)
+        if draft is None:
+            # 이번 주 소재가 없거나 검증을 못 넘으면 그날 자체를 건너뛰지 않고, 항상
+            # 안정적인 소재가 있는 til/news로 대체한다 - engineering은 "있으면 좋은"
+            # 보너스 슬롯이지, 발행 자체를 막을 이유가 아니다.
+            print("[DAILY_POST] 이번 주 개발기 소재/검증 실패, 평소 유형으로 대체")
+            content_type = _fallback_content_type(target_date)
+
+    if draft is None:
+        try:
+            sources = fetch_github_trending() if content_type == "til" else fetch_hackernews_top()
+        except Exception as e:
+            print(f"[DAILY_POST] 소재 수집 실패, 오늘은 건너뜀: {e}")
+            write_watchdog_status_marker(False, f"소재 수집 실패: {e}")
+            return
+        draft = _generate_valid_draft(content_type, sources, recent_titles)
+
     if draft is None:
         print(f"[DAILY_POST] {MAX_ATTEMPTS}번 시도 모두 검증 실패, 오늘은 발행을 건너뜀")
         write_watchdog_status_marker(False, f"{MAX_ATTEMPTS}번 시도 모두 검증 실패")
