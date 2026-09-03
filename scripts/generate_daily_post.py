@@ -626,7 +626,7 @@ def commit_and_push(path: Path) -> None:
         _LOCK_PATH.unlink(missing_ok=True)
 
 
-MAX_ATTEMPTS = 5
+MAX_ATTEMPTS = 3
 
 
 def _generate_valid_draft(content_type: str, sources: list[dict[str, Any]],
