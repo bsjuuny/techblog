@@ -61,6 +61,7 @@ exclude:
   - CAREER_DATA_REVIEW.md
   - SECURITY_CONTENT_REVIEW.md
   - CONTENT_PLAN.md
+  - AI_REVIEW_LOOP_CONTENT_IDEAS.md
 
 encoding: "utf-8"
 timezone: "Asia/Seoul"
