@@ -16,7 +16,8 @@
   url: "https://bsjuuny2026.mycafe24.com/culturehub/"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
   case_study_url: "/project/automation/culture-hub-automated-content-pipeline/"
-  samples_url: "/categories/#culture-hub"
+  samples_url: "/assets/files/culture-hub/culture-hub-monthly-guide-latest-ko.pdf"
+  archive_url: "/categories/#culture-hub"
 
 - name: "KOPIS Arts"
   category: "Culture"

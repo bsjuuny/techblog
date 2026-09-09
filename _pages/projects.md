@@ -38,7 +38,10 @@ classes: wide portfolio-page
       <a class="text-link" href="{{ project.case_study_url | relative_url }}">제작기 보기</a>
       {% endif %}
       {% if project.samples_url %}
-      <a class="text-link" href="{{ project.samples_url | relative_url }}">생성물 보기</a>
+      <a class="text-link" href="{{ project.samples_url | relative_url }}" target="_blank" rel="noopener noreferrer">생성물 보기 <span aria-hidden="true">↗</span></a>
+      {% endif %}
+      {% if project.archive_url %}
+      <a class="text-link" href="{{ project.archive_url | relative_url }}">이전 게시물 보기</a>
       {% endif %}
     </p>
   </article>
