@@ -71,3 +71,10 @@
   summary: "가전·생활용품의 설명서, 소모품 교체 주기와 AS 정보를 한곳에서 관리하는 도구입니다."
   url: "https://bsjuuny2026.mycafe24.com/our-home-manual/"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
+
+- name: "Risk Alert Bot"
+  category: "Safety"
+  summary: "위치를 최대 3곳 저장해두면 그 지역의 날씨·1시간 예보·긴급재난문자를 조회하거나 자동으로 알림받는 텔레그램 봇입니다."
+  url: "https://t.me/davids_riskAlertBot"
+  stack: ["Node.js", "Telegram Bot API", "Public Data"]
+  case_study_url: "/project/automation/risk-alert-bot-location-based-weather-disaster-notifications/"
