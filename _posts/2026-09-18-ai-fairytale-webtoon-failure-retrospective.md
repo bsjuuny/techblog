@@ -1,7 +1,7 @@
 ---
 title: "AI로 동화책과 웹툰을 만들려다 멈춘 이유"
-date: 2026-09-18 15:30:00 +0900
-last_modified_at: 2026-09-18 15:30:00 +0900
+date: 2026-09-18 07:00:00 +0900
+last_modified_at: 2026-09-18 07:00:00 +0900
 categories:
   - project
   - retrospective
