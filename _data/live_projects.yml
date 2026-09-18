@@ -49,6 +49,12 @@
   url: "https://bsjuuny2026.mycafe24.com/housingcalendar/"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
 
+- name: "온비드 공매 물건"
+  category: "Housing"
+  summary: "한국자산관리공사 온비드 공매 물건을 매일 수집해 지역·용도·감정가 대비 최저입찰가율로 탐색하는 서비스입니다."
+  url: "https://bsjuuny2026.mycafe24.com/onbid/"
+  stack: ["Python", "SQLite", "Public API", "JavaScript"]
+
 - name: "공지톡 정리함"
   category: "Productivity"
   summary: "어린이집·유치원 공지문에서 준비물, 일정과 부모가 할 일을 정리하는 도구입니다."

@@ -3,7 +3,7 @@ permalink: /projects/
 title: "Projects"
 description: "직접 개발·운영하는 Web 서비스와 React, AEM, Vue, Angular 기반 주요 실무 프로젝트"
 search: true
-last_modified_at: 2026-08-16T00:00:00+09:00
+last_modified_at: 2026-09-19T00:00:00+09:00
 toc: true
 toc_sticky: true
 author_profile: false
@@ -12,7 +12,7 @@ classes: wide portfolio-page
 
 <p class="page-kicker">SELECTED WORK</p>
 
-직접 개발하고 Cafe24에서 운영하는 개인 서비스와 실무에서 수행한 주요 프로젝트를 구분해 정리했습니다. 운영 서비스는 2026년 8월 16일 공개 URL의 응답과 화면을 직접 확인했으며, 실무 프로젝트는 원본 경력 자료에서 확인 가능한 범위만 포함했습니다.
+직접 개발하고 Cafe24에서 운영하는 개인 서비스와 실무에서 수행한 주요 프로젝트를 구분해 정리했습니다. 운영 서비스는 2026년 8월 16일(온비드 공매 물건은 9월 19일) 공개 URL의 응답과 화면을 직접 확인했으며, 실무 프로젝트는 원본 경력 자료에서 확인 가능한 범위만 포함했습니다.
 
 ## Live Projects
 
