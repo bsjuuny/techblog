@@ -1,9 +1,9 @@
 """매일 techblog에 자동으로 글 1개를 생성·검수·발행한다.
 
 구조:
-  1. 오늘의 콘텐츠 유형 결정 (일요일: 실제 프로젝트 개발기 / 나머지 요일: 짝·홀수일
-     교대로 개발·기술 TIL vs 테크 뉴스·트렌드). 일요일에 근거가 될 만한 커밋이 없으면
-     조용히 til/news로 대체한다 (억지 발행 금지 원칙은 이 슬롯에도 그대로 적용).
+  1. 오늘의 콘텐츠 유형 결정 (토요일: GitHub Radar / 일요일: 실제 프로젝트 개발기 /
+     나머지 요일: 짝·홀수일 교대로 개발·기술 TIL vs 테크 뉴스·트렌드). 주말 전용
+     슬롯에 충분한 근거가 없으면 조용히 til/news로 대체한다.
   2. 실제 무료 공식 API(GitHub Search API / Hacker News API)나 로컬 git 커밋 기록에서
      소재를 가져온다 — 소재 자체는 항상 코드가 직접 가져온 실제 데이터여야 하고,
      LLM은 이 소재를 "요약/설명"만 하고 새로운 사실을 지어내지 않는다 (모델을 Claude로
@@ -62,9 +62,11 @@ RECENT_DAYS_FOR_DUP_CHECK = 21
 # ── 1. 오늘의 콘텐츠 유형 ──────────────────────────────────────────────
 
 def pick_content_type(target_date: dt.date) -> str:
-    # 일요일은 실제 프로젝트 커밋 기반 개발기(engineering) 슬롯 - 나머지 요일은 기존
-    # til/news 홀짝 교대 그대로. 일요일에 근거가 될 만한 커밋이 없으면 run()이
-    # _fallback_content_type()으로 til/news에 넘긴다 (억지 발행 금지 원칙 유지).
+    # 토요일은 여러 저장소를 묶은 GitHub Radar, 일요일은 실제 프로젝트 커밋 기반
+    # 개발기(engineering) 슬롯이다. 전용 소재가 부족하면 run()이 평소 til/news로
+    # 넘기므로 억지로 빈약한 글을 발행하지 않는다.
+    if target_date.weekday() == 5:
+        return "github_radar"
     if target_date.weekday() == 6:
         return "engineering"
     return _fallback_content_type(target_date)
@@ -76,9 +78,15 @@ def _fallback_content_type(target_date: dt.date) -> str:
 
 # ── 2. 실제 소재 수집 (공식 무료 API) ──────────────────────────────────
 
-def fetch_github_trending(n: int = 8) -> list[dict[str, Any]]:
+def fetch_github_trending(
+    n: int = 8,
+    *,
+    days: int = 14,
+    reference_date: Optional[dt.date] = None,
+) -> list[dict[str, Any]]:
     """GitHub 공식 Search API로 최근 인기 급상승 저장소를 가져온다 (무료, 키 불필요)."""
-    since = (dt.date.today() - dt.timedelta(days=14)).isoformat()
+    reference_date = reference_date or dt.date.today()
+    since = (reference_date - dt.timedelta(days=days)).isoformat()
     resp = requests.get(
         "https://api.github.com/search/repositories",
         params={"q": f"created:>{since}", "sort": "stars", "order": "desc", "per_page": n},
@@ -94,9 +102,138 @@ def fetch_github_trending(n: int = 8) -> list[dict[str, Any]]:
             "description": it.get("description") or "",
             "stars": it.get("stargazers_count", 0),
             "language": it.get("language") or "",
+            "created_at": it.get("created_at") or "",
+            "pushed_at": it.get("pushed_at") or "",
+            "forks": it.get("forks_count", 0),
+            "fork": bool(it.get("fork")),
+            "archived": bool(it.get("archived")),
+            "disabled": bool(it.get("disabled")),
+            "license": (it.get("license") or {}).get("spdx_id") or "",
+            "owner": (it.get("owner") or {}).get("login") or it["full_name"].split("/", 1)[0],
         }
         for it in items
     ]
+
+
+_GITHUB_REPO_URL_RE = re.compile(
+    r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+",
+    re.IGNORECASE,
+)
+
+
+def _parse_github_timestamp(value: str) -> Optional[dt.datetime]:
+    try:
+        return dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+
+
+def get_recent_featured_repo_urls(days: int = 60) -> set[str]:
+    """최근 글 본문에서 실제로 소개한 GitHub 저장소 URL만 찾는다.
+
+    자동 글의 참고 소스 푸터에는 선택되지 않은 후보도 함께 들어가므로, 푸터를 포함해
+    중복을 검사하면 소개한 적 없는 저장소까지 제외된다. 따라서 본문 영역만 검사한다.
+    """
+    cutoff = dt.date.today() - dt.timedelta(days=days)
+    urls: set[str] = set()
+    for path in POSTS_DIR.glob("*.md"):
+        match = re.match(r"(\d{4}-\d{2}-\d{2})", path.name)
+        if not match:
+            continue
+        try:
+            post_date = dt.date.fromisoformat(match.group(1))
+        except ValueError:
+            continue
+        if post_date < cutoff:
+            continue
+        text = path.read_text(encoding="utf-8")
+        body = text.split("\n---\n\n**참고한 원본 소스**", 1)[0]
+        urls.update(url.rstrip("/.").lower() for url in _GITHUB_REPO_URL_RE.findall(body))
+    return urls
+
+
+def rank_github_radar_candidates(
+    sources: list[dict[str, Any]],
+    *,
+    reference_date: Optional[dt.date] = None,
+    excluded_urls: Optional[set[str]] = None,
+    limit: int = 5,
+) -> list[dict[str, Any]]:
+    """최근 생성 저장소를 성장 속도·활성도·다양성 기준으로 3~5개 선정한다.
+
+    GitHub Search API는 기간별 star 증가량을 제공하지 않는다. 평생 star 합계만으로
+    순위를 정하는 대신 생성 후 일평균 star를 공개 가능한 근사치로 쓰고, 최근 push를
+    작은 보정 신호로만 반영한다. LLM은 순위 결정에 관여하지 않는다.
+    """
+    reference_date = reference_date or dt.date.today()
+    excluded = {url.rstrip("/.").lower() for url in (excluded_urls or set())}
+    scored: list[dict[str, Any]] = []
+    seen_urls: set[str] = set()
+
+    for source in sources:
+        url = (source.get("url") or "").rstrip("/.")
+        normalized_url = url.lower()
+        if not url or normalized_url in seen_urls or normalized_url in excluded:
+            continue
+        seen_urls.add(normalized_url)
+        if source.get("fork") or source.get("archived") or source.get("disabled"):
+            continue
+        if len((source.get("description") or "").strip()) < 20:
+            continue
+        if not (source.get("license") or "").strip():
+            continue
+
+        created_at = _parse_github_timestamp(source.get("created_at") or "")
+        pushed_at = _parse_github_timestamp(source.get("pushed_at") or "")
+        if created_at is None or pushed_at is None:
+            continue
+        age_days = max(1, (reference_date - created_at.date()).days)
+        pushed_days_ago = max(0, (reference_date - pushed_at.date()).days)
+        stars = int(source.get("stars") or 0)
+        if age_days < 2 or stars < 50 or pushed_days_ago > 14:
+            continue
+
+        stars_per_day = stars / age_days
+        activity_bonus = 1.15 if pushed_days_ago <= 7 else 1.0
+        candidate = dict(source)
+        candidate.update({
+            "age_days": age_days,
+            "stars_per_day": round(stars_per_day, 1),
+            "trend_score": round(stars_per_day * activity_bonus, 2),
+        })
+        scored.append(candidate)
+
+    scored.sort(key=lambda item: (-item["trend_score"], -int(item.get("stars") or 0), item["title"]))
+
+    selected: list[dict[str, Any]] = []
+    owners: set[str] = set()
+    language_counts: dict[str, int] = {}
+    for candidate in scored:
+        owner = (candidate.get("owner") or candidate["title"].split("/", 1)[0]).lower()
+        language = candidate.get("language") or "기타"
+        if owner in owners or language_counts.get(language, 0) >= 2:
+            continue
+        selected.append(candidate)
+        owners.add(owner)
+        language_counts[language] = language_counts.get(language, 0) + 1
+        if len(selected) >= limit:
+            break
+
+    return selected if len(selected) >= 3 else []
+
+
+def fetch_github_radar_candidates(
+    target_date: Optional[dt.date] = None,
+    n: int = 5,
+) -> list[dict[str, Any]]:
+    target_date = target_date or dt.date.today()
+    sources = fetch_github_trending(n=50, days=30, reference_date=target_date)
+    return rank_github_radar_candidates(
+        sources,
+        reference_date=target_date,
+        excluded_urls=get_recent_featured_repo_urls(),
+        limit=n,
+    )
 
 
 _META_DESC_RE = re.compile(
@@ -289,6 +426,46 @@ def generate_draft_til(sources: list[dict[str, Any]], pick_rank: int = 0) -> dic
     return {"title": title, "body": body, "sources": sources, "picked": picked}
 
 
+def generate_draft_github_radar(sources: list[dict[str, Any]]) -> dict[str, Any]:
+    source_block = "\n".join(
+        (
+            f"- {source['title']} | 설명: {source['description']} | 언어: "
+            f"{source.get('language') or '미표기'} | stars: {source['stars']} | "
+            f"생성일: {source['created_at']} | 최근 push: {source['pushed_at']} | "
+            f"생성 후 일평균 stars(총 stars/생성 일수): {source['stars_per_day']} | "
+            f"라이선스: {source.get('license') or '미표기'} | URL: {source['url']}"
+        )
+        for source in sources
+    )
+    prompt = (
+        "당신은 Frontend 개발자를 위한 오픈소스 큐레이터입니다. 아래 목록은 GitHub Search "
+        "API에서 최근 30일 내 생성된 저장소를 가져온 뒤, 코드가 성장 속도·최근 활동·언어와 "
+        "소유자 다양성을 기준으로 선정한 실제 데이터입니다.\n\n"
+        f"{source_block}\n\n"
+        "이 저장소들을 모두 소개하는 '이번 주 GitHub Radar' 브리핑을 한국어로 작성하세요.\n\n"
+        "규칙 (반드시 지킬 것):\n"
+        "- 목록의 모든 저장소를 하나씩 다루고, 저장소 이름을 각 항목의 ## 소제목에 넣으세요.\n"
+        "- description과 함께 제공된 숫자·날짜·언어·라이선스만 사실로 다루세요. README를 "
+        "읽었다고 가정하거나 기능, 설치법, 성능, 제작 의도를 지어내지 마세요.\n"
+        "- '생성 후 일평균 stars'는 현재 총 stars를 생성 일수로 나눈 근사치일 뿐, 실제 일별 "
+        "증가량이나 GitHub 공식 트렌딩 점수가 아니라는 점을 도입부에서 짧게 밝히세요.\n"
+        "- 각 항목은 무엇을 표방하는 프로젝트인지, 어떤 개발자가 살펴볼 만한지, 도입 전에 "
+        "무엇을 추가 확인해야 하는지를 3~4문장으로 구체적으로 설명하세요. 추천이나 실사용 "
+        "후기처럼 단정하지 마세요.\n"
+        "- 각 저장소 링크는 목록에 있는 정확한 URL만 사용하고 다른 URL을 만들지 마세요.\n"
+        "- 도입부와 선정 기준을 포함해 1800~2600자 분량으로 쓰고, 모바일에서 읽기 쉽게 "
+        "문단을 2~3문장 단위로 끊으세요.\n"
+        "- 마지막에 '살펴볼 때 확인할 것' 소제목을 두고 라이선스, 유지보수 활동, 보안, "
+        "프로덕션 적합성을 직접 확인하라는 공통 주의사항을 짧게 정리하세요.\n"
+        "- 마지막 줄에 'TITLE: '으로 시작하는 34자 이내의 구체적인 한국어 제목을 쓰세요. "
+        "여러 프로젝트를 묶은 글이라는 점이 제목에 드러나야 합니다.\n"
+        "- 반드시 한국어로만 작성하세요. 중국어 한자나 다른 언어 단어를 섞지 마세요.\n"
+    )
+    text = _claude(prompt, effort="medium")
+    title, body = _split_title(text)
+    return {"title": title, "body": body, "sources": sources, "picked": None}
+
+
 def generate_draft_news(sources: list[dict[str, Any]]) -> dict[str, Any]:
     def _source_line(s: dict[str, Any]) -> str:
         line = f"- {s['title']} (score {s['score']}) — {s['url']}"
@@ -459,7 +636,15 @@ def quality_check_agent(draft: dict[str, Any], content_type: str) -> dict[str, A
     # 있었다고 판단했다. 브리핑 형식에 맞는 기준으로 바꾸되, 여전히 실제로 판정해서
     # FAIL이 나올 수 있는 진짜 기준이어야 한다(무조건 PASS로 만들면 검증 자체가
     # 무의미해지므로).
-    if content_type == "news":
+    if content_type == "github_radar":
+        search_intent_criterion = (
+            "- 검색의도: 이 글은 여러 오픈소스를 묶은 '이번 주 GitHub 프로젝트 동향' "
+            "브리핑입니다. '요즘 뜨는 GitHub 프로젝트', '새 오픈소스 모아보기'를 찾는 "
+            "독자에게 각 저장소의 실제 설명과 선정 근거 숫자를 빠르게 비교하게 해주면 PASS. "
+            "단순히 star 수와 description을 되풀이하거나, 근거 없이 추천·실사용 후기처럼 "
+            "단정하면 FAIL.\n"
+        )
+    elif content_type == "news":
         search_intent_criterion = (
             "- 검색의도: 이 글은 여러 소식을 묶은 '오늘의 기술 뉴스 브리핑' 형식입니다. "
             "'이 라이브러리 어떻게 쓰지'처럼 단일 주제에 답하는 검색 의도가 아니라, "
@@ -556,6 +741,8 @@ def write_post(draft: dict[str, Any], content_type: str, target_date: dt.date) -
 
     if content_type == "til":
         category, category_label = "devlog", "Dev Log · Auto"
+    elif content_type == "github_radar":
+        category, category_label = "github-radar", "GitHub Radar · Auto"
     elif content_type == "engineering":
         # til도 "devlog" 카테고리를 이미 쓰고 있어(다른 저장소 트렌드 소개 글) 이름이
         # 겹치면 안 된다 - 실제 자기 프로젝트 커밋 기반 글은 별도 카테고리로 구분한다.
@@ -564,7 +751,11 @@ def write_post(draft: dict[str, Any], content_type: str, target_date: dt.date) -
         category, category_label = "news", "Tech News · Auto"
     picked = draft.get("picked") or {}
     extra_tag = picked.get("language") or picked.get("repo")
-    tags = ["Auto Generated"] + ([extra_tag] if extra_tag else [])
+    tags = (
+        ["Auto Generated", "GitHub", "Open Source"]
+        if content_type == "github_radar"
+        else ["Auto Generated"] + ([extra_tag] if extra_tag else [])
+    )
 
     source_links = "\n".join(f"- [{s['title']}]({s['url']})" for s in draft["sources"] if s.get("url"))
 
@@ -587,7 +778,11 @@ def write_post(draft: dict[str, Any], content_type: str, target_date: dt.date) -
     source_description = (
         "필자가 실제 작업한 프로젝트의 git 커밋 기록을"
         if content_type == "engineering"
-        else "실제 공개 API(GitHub/Hacker News)에서 가져온 데이터를"
+        else (
+            "GitHub Search API에서 가져와 성장 속도와 활동성을 기준으로 선정한 데이터를"
+            if content_type == "github_radar"
+            else "실제 공개 API(GitHub/Hacker News)에서 가져온 데이터를"
+        )
     )
     disclosure = (
         "> **자동 생성 안내**  \n"
@@ -642,6 +837,8 @@ def _generate_valid_draft(content_type: str, sources: list[dict[str, Any]],
             # 매 시도마다 다른 저장소/커밋을 골라본다 (같은 주제가 계속 실패하는 경우 대비).
             if content_type == "til":
                 draft = generate_draft_til(sources, pick_rank=attempt - 1)
+            elif content_type == "github_radar":
+                draft = generate_draft_github_radar(sources)
             elif content_type == "engineering":
                 draft = generate_draft_engineering(sources, pick_rank=attempt - 1)
             else:
@@ -724,6 +921,18 @@ def run(target_date: Optional[dt.date] = None) -> None:
 
     recent_titles = get_recent_titles()
     draft = None
+
+    if content_type == "github_radar":
+        try:
+            radar_sources = fetch_github_radar_candidates(target_date)
+        except Exception as e:
+            print(f"[DAILY_POST] GitHub Radar 소재 수집 실패: {e}")
+            radar_sources = []
+        if radar_sources:
+            draft = _generate_valid_draft("github_radar", radar_sources, recent_titles)
+        if draft is None:
+            print("[DAILY_POST] GitHub Radar 후보/검증 부족, 평소 유형으로 대체")
+            content_type = _fallback_content_type(target_date)
 
     if content_type == "engineering":
         try:

@@ -3,6 +3,8 @@ main:
     url: "/"
   - title: "Blog"
     url: "/blog/"
+  - title: "GitHub Radar"
+    url: "/github-radar/"
   - title: "Categories"
     url: "/categories/"
   - title: "Projects"

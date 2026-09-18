@@ -20,6 +20,7 @@ REQUIRED = [
     "_pages/about.md",
     "_pages/projects.md",
     "_pages/blog.md",
+    "_pages/github-radar.md",
     "_posts/2026-08-15-responsive-web-production-checklist.md",
     "_posts/2026-08-15-ai-generated-frontend-code-review-checklist.md",
     "_data/navigation.yml",
