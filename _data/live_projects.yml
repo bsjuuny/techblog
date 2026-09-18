@@ -10,6 +10,30 @@
   url: "https://bsjuuny2026.mycafe24.com/krstock/"
   stack: ["Python", "JavaScript", "Public Data"]
 
+- name: "IPO Master"
+  category: "Finance"
+  summary: "국내 공모주의 수요예측과 청약 경쟁률, 상장 이후 수익률까지 데이터로 확인하는 대시보드입니다."
+  url: "https://bsjuuny2026.mycafe24.com/ipomaster/"
+  stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
+
+- name: "오늘의 투자 신호"
+  category: "Finance"
+  summary: "기관·외국인 수급과 거래량을 묶어 국내 주식의 일일 관찰 신호를 보여주는 대시보드입니다."
+  url: "https://bsjuuny2026.mycafe24.com/todaysignal/"
+  stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
+
+- name: "US Small-Cap Top 100"
+  category: "Finance"
+  summary: "한국 시간 기준 밤사이 거래가 활발했던 미국 스몰캡 상위 100개 종목을 지표별로 추적하는 대시보드입니다."
+  url: "https://bsjuuny2026.mycafe24.com/smallcap/"
+  stack: ["JavaScript", "Node.js", "Market Data"]
+
+- name: "Trending Rankings"
+  category: "Trends"
+  summary: "Google·Signal.bz·Zum·Nate의 실시간 검색어 순위를 한 화면에서 비교하는 서비스입니다."
+  url: "https://bsjuuny2026.mycafe24.com/trendingrankings/"
+  stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
+
 - name: "Culture Hub"
   category: "Culture"
   summary: "서울의 문화·관광·맛집·카페·키즈·공연·전시 정보를 탐색하고 코스를 추천하는 서비스입니다."
