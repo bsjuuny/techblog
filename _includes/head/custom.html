@@ -1,5 +1,7 @@
 <link rel="icon" type="image/svg+xml" href="{{ '/assets/images/favicon.svg' | relative_url }}">
-<meta name="theme-color" content="#17365d">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -19,7 +21,13 @@
 document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('.page__content a[href]').forEach(function (link) {
     var href = link.getAttribute('href') || '';
-    if (href.charAt(0) === '#') return; // in-page anchors (TOC, heading permalinks) stay in this tab
+    var url;
+    try {
+      url = new URL(href, window.location.href);
+    } catch (error) {
+      return;
+    }
+    if (href.charAt(0) === '#' || url.origin === window.location.origin) return;
     link.setAttribute('target', '_blank');
     var rel = (link.getAttribute('rel') || '').split(/\s+/).filter(Boolean);
     if (rel.indexOf('noopener') === -1) rel.push('noopener');

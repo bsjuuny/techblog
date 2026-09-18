@@ -1,8 +1,11 @@
 
 .DS_Store
 _site/
+_site_preview/
 .jekyll-cache/
 .jekyll-metadata
 .sass-cache/
 .env
 scripts/__pycache__/
+.preview-*.log
+.server-*.log

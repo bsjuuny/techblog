@@ -1,0 +1,7 @@
+{% if include.tags and include.tags.size > 0 %}
+<ul class="post-tag-list" aria-label="태그">
+  {% for tag in include.tags %}
+  <li><a class="post-tag" href="{{ '/tags/' | relative_url }}#{{ tag | slugify }}">#{{ tag }}</a></li>
+  {% endfor %}
+</ul>
+{% endif %}

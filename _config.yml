@@ -51,6 +51,7 @@ include:
   - _pages
 
 exclude:
+  - AGENTS.md
   - vendor
   - .bundle
   - .jekyll-cache

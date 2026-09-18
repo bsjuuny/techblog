@@ -42,3 +42,21 @@ bundle exec jekyll serve --baseurl /techblog
 - `CAREER_DATA_REVIEW.md`
 - `SECURITY_CONTENT_REVIEW.md`
 - `CONTENT_PLAN.md`
+
+## 본문 정보 박스
+
+글의 핵심 요약, 체크리스트, 참고자료는 Markdown에서 다음처럼 사용할 수 있습니다.
+
+```html
+<div class="summary-box">
+  <strong>핵심 요약</strong>
+  <p>이 글에서 기억할 가장 중요한 내용을 적습니다.</p>
+</div>
+
+<div class="checklist-box">
+  <strong>실무 체크리스트</strong>
+  <ul><li>배포 전에 확인할 항목</li></ul>
+</div>
+```
+
+사용 가능한 클래스는 `note-box`, `summary-box`, `checklist-box`, `reference-box`, `warning-box`, `ai-note`입니다. 기존 Minimal Mistakes 알림 문법(`{: .notice--info }` 등)도 같은 디자인 체계로 표시됩니다.

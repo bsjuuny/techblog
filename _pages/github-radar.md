@@ -29,8 +29,8 @@ classes: wide portfolio-page
   <article class="article-item">
     <p class="project-meta">{{ post.date | date: "%Y.%m.%d" }} · {{ post.category_label | default: "GitHub Radar" }}</p>
     <h2><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h2>
-    <p>{{ post.excerpt | strip_html | truncate: 200 }}</p>
-    {% if post.tags.size > 0 %}<p class="article-tags">{{ post.tags | join: " · " }}</p>{% endif %}
+    <p class="article-excerpt">{{ post.excerpt | strip_html | truncate: 200 }}</p>
+    {% include post-tag-pills.html tags=post.tags %}
   </article>
   {% endif %}
 {% endfor %}

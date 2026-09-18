@@ -45,7 +45,8 @@ excerpt: "Frontend 개발 과정에서 마주친 문제, 선택의 기준, 운�
     <article class="article-item">
       <p class="project-meta">{{ post.date | date: "%Y.%m.%d" }}{% if post.category_label %} · {{ post.category_label }}{% elsif post.categories.size > 0 %} · {{ post.categories | join: " · " }}{% endif %}</p>
       <h3><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h3>
-      <p>{{ post.excerpt | strip_html | truncate: 180 }}</p>
+      <p class="article-excerpt">{{ post.excerpt | strip_html | truncate: 180 }}</p>
+      {% include post-tag-pills.html tags=post.tags %}
     </article>
     {% endfor %}
   </div>
