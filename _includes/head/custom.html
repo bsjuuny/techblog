@@ -2,21 +2,98 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+{% comment %}
+  구조화 데이터(JSON-LD).
+
+  생성형 엔진(ChatGPT/Perplexity/Google AI 등)이 글을 인용할 때 "누가, 언제 쓴, 무슨
+  글인가"를 집어낼 근거가 되는 부분이다. 테마(minimal-mistakes) `_includes/seo.html`은
+  og/canonical 같은 메타 태그와 사이트 수준 Person/WebSite JSON-LD까지만 내보내고,
+  글 단위 Article 스키마는 내보내지 않는다 — 그래서 여기서 보완한다.
+
+  - 글(_posts): BlogPosting. 사이트 수준 Blog 객체를 글 페이지에까지 붙이면 의미가
+    어긋나므로, 글에서는 BlogPosting만 내고 Blog는 isPartOf로 참조한다.
+  - 그 밖(홈·고정 페이지): Blog.
+
+  이름·URL·sameAs는 하드코딩하지 않고 `_config.yml`(site.author / site.social.links)에서
+  가져온다 — 설정과 구조화 데이터가 서로 달라지는 것을 막기 위함이다.
+{% endcomment %}
+{% assign geo_blog_id = site.url | append: site.baseurl | append: '/' %}
+{% assign geo_author_url = '/about/' | absolute_url %}
+{% if page.image %}
+  {% assign geo_image = page.image | absolute_url %}
+{% elsif site.og_image %}
+  {% assign geo_image = site.og_image | absolute_url %}
+{% endif %}
+{%- comment -%}
+  테마 seo.html은 site.twitter.username이 있을 때만 twitter 카드 메타를 내보낸다.
+  X/Slack 등은 og 태그로 폴백하지만 카드 종류는 추측하지 못하므로 최소한만 직접 지정한다.
+{%- endcomment -%}
+{% if geo_image %}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{{ geo_image }}">
+{% endif %}
+{% if page.collection == 'posts' %}
+  {% assign geo_desc = page.excerpt | default: site.description | strip_html | strip_newlines | strip | truncate: 200 %}
+  {% assign geo_keywords = page.tags | concat: page.categories | uniq | join: ', ' %}
+  {% if page.last_modified_at %}
+    {% assign geo_modified = page.last_modified_at | date_to_xmlschema %}
+  {% else %}
+    {% assign geo_modified = page.date | date_to_xmlschema %}
+  {% endif %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": {{ page.url | absolute_url | jsonify }}
+  },
+  "headline": {{ page.title | jsonify }},
+  "description": {{ geo_desc | jsonify }},
+  "url": {{ page.url | absolute_url | jsonify }},
+  "datePublished": {{ page.date | date_to_xmlschema | jsonify }},
+  "dateModified": {{ geo_modified | jsonify }},
+  "inLanguage": "ko-KR",
+  "isAccessibleForFree": true,
+  "keywords": {{ geo_keywords | jsonify }},{% if geo_image %}
+  "image": {{ geo_image | jsonify }},{% endif %}
+  "author": {
+    "@type": "Person",
+    "name": {{ site.author.name | jsonify }},
+    "url": {{ geo_author_url | jsonify }},
+    "sameAs": {{ site.social.links | jsonify }}
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": {{ site.author.name | jsonify }},
+    "url": {{ geo_blog_id | jsonify }}
+  },
+  "isPartOf": {
+    "@type": "Blog",
+    "@id": {{ geo_blog_id | jsonify }},
+    "name": {{ site.title | jsonify }}
+  }
+}
+</script>
+{% elsif page.url == '/' %}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "Blog",
-  "name": "{{ site.title }}",
-  "url": "{{ site.url }}{{ site.baseurl }}/",
-  "description": "{{ site.description }}",
+  "@id": {{ geo_blog_id | jsonify }},
+  "name": {{ site.title | jsonify }},
+  "url": {{ geo_blog_id | jsonify }},
+  "description": {{ site.description | jsonify }},
   "inLanguage": "ko-KR",
   "author": {
     "@type": "Person",
-    "name": "백승준",
-    "sameAs": ["https://github.com/bsjuuny"]
+    "name": {{ site.author.name | jsonify }},
+    "url": {{ geo_author_url | jsonify }},
+    "sameAs": {{ site.social.links | jsonify }}
   }
 }
 </script>
+{% endif %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('.page__content a[href]').forEach(function (link) {

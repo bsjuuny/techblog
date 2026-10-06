@@ -25,6 +25,22 @@ Frontend 개발 과정에서 마주친 문제, 기술 선택의 기준, 운영 �
 생성된 저장소를 성장 속도·최근 활동·언어 및 소유자 다양성으로 선정하며, 기존 글과 같은
 링크 허용 목록·팩트 검증·품질 점수 기준을 모두 통과한 경우에만 발행합니다.
 
+## 검색·AI 인용 (GEO)
+
+생성형 검색 엔진이 글을 인용할 수 있도록 다음을 유지합니다.
+
+- `_includes/head/custom.html` — 글 페이지는 `BlogPosting` JSON-LD(제목·요약·작성일·
+  작성자·대표 이미지), 홈은 `Blog` JSON-LD를 내보냅니다.
+- `llms.txt` — 사이트 개요, 자동 생성 글에 대한 고지, 카테고리별 전체 글 목록
+  (`/llms.txt`로 발행, Liquid가 글 목록을 자동으로 채웁니다).
+- `og_image` (`assets/images/og-default.png`, 생성: `scripts/make_og_image.py`) —
+  공유·AI 카드용 기본 이미지.
+- `excerpt`는 제목 복사본이 아니라 글의 한 줄 요약입니다. 자동 생성 글은 모델이 본문과
+  별도로 내놓은 `SUMMARY`를 쓰고, 없으면 본문 첫 문단에서 뽑습니다
+  (`scripts/post_meta.py`). 과거 글 소급 보정은 `scripts/normalize_post_meta.py`.
+- 본문에는 H1(`# `)을 쓰지 않습니다. 레이아웃이 글 제목을 H1으로 출력하므로 본문
+  소제목은 `##`부터 시작합니다.
+
 ## 로컬 실행
 
 Ruby와 Bundler 설치 후:

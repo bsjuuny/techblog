@@ -9,6 +9,9 @@ description: "React, TypeScript, Web Standards, Enterprise UI 개발 과정에�
 url: "https://bsjuuny.github.io"
 baseurl: "/techblog"
 repository: "bsjuuny/techblog"
+# 글마다 대표 이미지가 없으므로, 공유·AI 카드에 쓰일 기본 OG 이미지를 사이트 전역으로 둔다
+# (생성: scripts/make_og_image.py). 테마 _includes/seo.html 이 og:image / twitter:image 로 쓴다.
+og_image: "/assets/images/og-default.png"
 masthead_title: "Frontend Engineering Notes"
 breadcrumbs: false
 words_per_minute: 200
