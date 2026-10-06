@@ -38,6 +38,14 @@ import anthropic
 import requests
 from dotenv import load_dotenv
 
+# 이 스크립트는 스케줄러가 `python scripts/generate_daily_post.py`로 직접 실행하기도 하고,
+# 테스트가 `from scripts import generate_daily_post`로 임포트하기도 한다. 두 경우에
+# sys.path 기준이 달라서 형제 모듈 임포트 경로도 달라진다.
+try:
+    from scripts.post_meta import clean_excerpt, derive_excerpt, normalize_headings
+except ModuleNotFoundError:  # 스크립트로 직접 실행될 때
+    from post_meta import clean_excerpt, derive_excerpt, normalize_headings
+
 if sys.stdout is not None:
     sys.stdout.reconfigure(encoding="utf-8")
 
@@ -56,6 +64,13 @@ _client = anthropic.Anthropic()
 # 100% 통과를 요구 — 안전이 중요한 항목은 기준을 낮추지 않았다). 실제 발행이 며칠 쌓이면
 # 다시 실측해서 조정할 것.
 SCORE_THRESHOLD = 55
+
+# 생성형 검색(ChatGPT/Perplexity/Google AI 등)이 인용할 만한 글인지에 대한 점수는 위
+# 네 항목과 달리 아직 이 블로그에서 실측된 분포가 없다. 기준을 모르는 채로 발행 게이트에
+# 넣으면 "그날은 조용히 건너뜀"이 늘어날 뿐이므로, 기본값 0(= 기록만 하고 막지 않음)으로
+# 두고 며칠치 점수가 로그에 쌓인 뒤 `GEO_SCORE_THRESHOLD` 환경변수로 올린다.
+# 네 항목과 같은 방식으로 실측 후 조정할 것 — 위 SCORE_THRESHOLD의 전례를 따른다.
+GEO_SCORE_THRESHOLD = int(os.getenv("GEO_SCORE_THRESHOLD", "0"))
 RECENT_DAYS_FOR_DUP_CHECK = 21
 
 
@@ -124,12 +139,44 @@ VOICE_BY_TYPE = {
 }
 
 
+# ── 0-2. 구조 (생성형 엔진 인용 가능성) ────────────────────────────────
+# ChatGPT/Perplexity/Google AI 같은 생성형 엔진은 글에서 "이 글이 무엇에 답하는가"를
+# 뽑아 인용한다. 두괄식 요약, 질문 형태의 소제목, 출처가 붙은 사실, 비교의 목록화가
+# 그 근거가 된다. 네 유형 공통이라 말투 가이드와 같은 자리에 둔다.
+# 사실 근거·링크 규칙(지어내기 금지)은 팩트체크 게이트와 직결되므로 여기로 옮기지 않는다.
+STRUCTURE_GUIDE = (
+    "구조 (반드시 지킬 것):\n"
+    "- 첫 문단에서 이 글이 무엇을 다루고 독자가 무엇을 알게 되는지 2~3문장으로 먼저 "
+    "말하세요. 인사말이나 일반론으로 시작하지 마세요.\n"
+    "- 소제목은 독자가 실제로 검색할 법한 질문이나 쟁점을 그대로 쓰세요. '개요', "
+    "'들어가며', '마무리' 같은 내용 없는 소제목은 쓰지 마세요.\n"
+    "- 날짜·수치·버전처럼 확인 가능한 사실은 주어진 소재에 있는 값만 쓰고, 어디서 나온 "
+    "값인지 함께 밝히세요. 소재에 없으면 '여기까지는 확인되지 않는다'로 남기세요.\n"
+    "- 한 소제목 아래에서 비교·조건·선택지가 셋 이상 나오면 문단 대신 목록으로 정리하세요.\n"
+    "- 본문에 `# ` 제목(H1)을 쓰지 마세요. 글 제목은 페이지가 따로 출력하므로 본문 "
+    "소제목은 `## `부터 시작합니다.\n"
+)
+
+# 요약문은 본문이 아니라 메타데이터(meta description, og:description, JSON-LD의
+# description)로 들어간다. 예전에는 제목을 그대로 excerpt에 복사했는데, 그러면 검색
+# 결과에도 AI 인용에도 제목 반복만 남아 쓸 내용이 없다. 그래서 본문과 별도로 받는다.
+# 제목 지시는 유형마다 다르므로(브리핑은 여러 소식을 묶었다는 게 드러나야 하는 등)
+# 각 프롬프트에 그대로 두고, 공통인 요약문 규칙만 여기 둔다.
+SUMMARY_OUTPUT_RULE = (
+    "- TITLE 줄 다음 줄에 'SUMMARY: '로 시작하는 한 줄 요약을 쓰세요. 이 글이 어떤 질문에 "
+    "답하는지 60~120자 1~2문장으로 쓰고, 제목 문구를 그대로 반복하지 마세요. 본문에서 "
+    "실제로 다룬 내용만 쓰고 링크·따옴표·줄바꿈은 넣지 마세요.\n"
+)
+
+
 def _style_block(content_type: str) -> str:
     return (
         _STYLE_HEADER
         + ENDING_BY_TYPE[content_type]
         + STYLE_GUIDE
         + VOICE_BY_TYPE[content_type]
+        + "\n"
+        + STRUCTURE_GUIDE
         + "\n"
     )
 
@@ -497,10 +544,11 @@ def generate_draft_til(sources: list[dict[str, Any]], pick_rank: int = 0) -> dic
         "- 마지막 줄에 'TITLE: '으로 시작하는 30자 이내의 한국어 제목을 별도로 제시하세요. "
         "무엇을 다루는 글인지 구체적으로 드러내되, 과장이나 낚시성 표현은 쓰지 마세요.\n"
         "- 반드시 한국어로만 작성하세요. 중국어 한자나 다른 언어 단어를 절대 섞지 마세요.\n"
+        + SUMMARY_OUTPUT_RULE
     )
     text = _claude(prompt, effort="medium")
-    title, body = _split_title(text)
-    return {"title": title, "body": body, "sources": sources, "picked": picked}
+    title, summary, body = _split_meta(text)
+    return {"title": title, "summary": summary, "body": body, "sources": sources, "picked": picked}
 
 
 def generate_draft_github_radar(sources: list[dict[str, Any]]) -> dict[str, Any]:
@@ -538,10 +586,11 @@ def generate_draft_github_radar(sources: list[dict[str, Any]]) -> dict[str, Any]
         "- 마지막 줄에 'TITLE: '으로 시작하는 34자 이내의 구체적인 한국어 제목을 쓰세요. "
         "여러 프로젝트를 묶은 글이라는 점이 제목에 드러나야 합니다.\n"
         "- 반드시 한국어로만 작성하세요. 중국어 한자나 다른 언어 단어를 섞지 마세요.\n"
+        + SUMMARY_OUTPUT_RULE
     )
     text = _claude(prompt, effort="medium")
-    title, body = _split_title(text)
-    return {"title": title, "body": body, "sources": sources, "picked": None}
+    title, summary, body = _split_meta(text)
+    return {"title": title, "summary": summary, "body": body, "sources": sources, "picked": None}
 
 
 def generate_draft_news(sources: list[dict[str, Any]]) -> dict[str, Any]:
@@ -591,10 +640,11 @@ def generate_draft_news(sources: list[dict[str, Any]]) -> dict[str, Any]:
         "묶었다는 게 제목에서부터 드러나야 합니다 (예: '로컬 LLM이 멍청해 보이는 이유 외 "
         "오늘의 개발 뉴스 4가지'). '오늘의 기술 뉴스' 같은 밋밋한 제목도 금지입니다.\n"
         "- 반드시 한국어로만 작성하세요. 중국어 한자나 다른 언어 단어를 절대 섞지 마세요.\n"
+        + SUMMARY_OUTPUT_RULE
     )
     text = _claude(prompt, effort="medium")
-    title, body = _split_title(text)
-    return {"title": title, "body": body, "sources": sources, "picked": None}
+    title, summary, body = _split_meta(text)
+    return {"title": title, "summary": summary, "body": body, "sources": sources, "picked": None}
 
 
 def generate_draft_engineering(commits: list[dict[str, Any]], pick_rank: int = 0) -> dict[str, Any]:
@@ -630,17 +680,26 @@ def generate_draft_engineering(commits: list[dict[str, Any]], pick_rank: int = 0
         "- 마지막 줄에 'TITLE: '으로 시작하는 30자 이내의 한국어 제목을 별도로 제시하세요. "
         "무엇을 고친 글인지 구체적으로 드러내되, 과장이나 낚시성 표현은 쓰지 마세요.\n"
         "- 반드시 한국어로만 작성하세요. 중국어 한자나 다른 언어 단어를 절대 섞지 마세요.\n"
+        + SUMMARY_OUTPUT_RULE
     )
     text = _claude(prompt, effort="medium")
-    title, body = _split_title(text)
-    return {"title": title, "body": body, "sources": commits, "picked": picked}
+    title, summary, body = _split_meta(text)
+    return {"title": title, "summary": summary, "body": body, "sources": commits, "picked": picked}
 
 
-def _split_title(text: str) -> tuple[str, str]:
-    m = re.search(r"TITLE:\s*(.+)", text)
-    title = m.group(1).strip().strip('"') if m else "오늘의 기술 노트"
-    body = re.sub(r"TITLE:\s*.+", "", text).strip()
-    return title, body
+def _split_meta(text: str) -> tuple[str, str, str]:
+    """모델 응답에서 제목·요약문·본문을 분리한다.
+
+    요약문(SUMMARY)은 모델이 빠뜨릴 수 있으므로 빈 문자열을 돌려줄 수 있다 —
+    그 경우 write_post가 본문 첫 문단에서 뽑아 쓴다(발행을 막지는 않는다).
+    본문 H1은 여기서 정규화해, 이후 검수 에이전트도 실제 발행될 형태를 보게 한다.
+    """
+    title_m = re.search(r"^\s*TITLE:\s*(.+)$", text, re.MULTILINE)
+    summary_m = re.search(r"^\s*SUMMARY:\s*(.+)$", text, re.MULTILINE)
+    title = title_m.group(1).strip().strip('"') if title_m else "오늘의 기술 노트"
+    summary = summary_m.group(1).strip().strip('"') if summary_m else ""
+    body = re.sub(r"^\s*(?:TITLE|SUMMARY):\s*.+$", "", text, flags=re.MULTILINE).strip()
+    return title, summary, normalize_headings(body, title)
 
 
 # ── 4. 코드 레벨 검증 (링크 위조 / 생성 결함) ────────────────────────────
@@ -746,7 +805,8 @@ def quality_check_agent(draft: dict[str, Any], content_type: str) -> dict[str, A
         search_intent_criterion = "- 검색의도: 제목과 본문이 검색 사용자의 의도에 부합하면 PASS\n"
 
     prompt = (
-        "당신은 네이버 블로그 SEO와 모바일 UX에 정통한 콘텐츠 품질 에디터입니다. "
+        "당신은 네이버 블로그 SEO와 모바일 UX, 그리고 생성형 검색 엔진(ChatGPT·Perplexity·"
+        "Google AI 개요 등)이 어떤 글을 인용하는지에 정통한 콘텐츠 품질 에디터입니다. "
         "아래 글을 검수하세요.\n\n"
         "이 블로그는 과장 없는 담백한 엔지니어 톤을 의도적으로 지향합니다. 감탄사·수식어·"
         "낚시성 표현이 없다는 이유로 감점하지 마세요. 반대로 상투적 수식어나 빈 마무리 "
@@ -760,6 +820,7 @@ def quality_check_agent(draft: dict[str, Any], content_type: str) -> dict[str, A
         "네이버SEO: 0-100 사이 숫자\n"
         "모바일UX: 0-100 사이 숫자\n"
         "차별성: 0-100 사이 숫자\n"
+        "생성형검색: 0-100 사이 숫자\n"
         "사유: (검색의도가 FAIL이면 왜 그런지 한 줄로, PASS면 '없음')\n\n"
         "판정 기준:\n"
         f"{search_intent_criterion}"
@@ -770,9 +831,18 @@ def quality_check_agent(draft: dict[str, Any], content_type: str) -> dict[str, A
         "- 모바일UX: 문단이 짧고 스캔하기 쉬우면 높은 점수\n"
         "- 차별성: 뻔한 일반론이 아니라 구체적 관점이 있고, 확인되지 않은 부분을 솔직히 "
         "밝히면 높은 점수\n"
+        "- 생성형검색: 생성형 검색 엔진이 이 글을 근거로 인용할 수 있는지를 봅니다. "
+        "①첫 문단만 읽어도 이 글이 무엇에 답하는지 알 수 있는가 ②소제목이 독자가 검색할 "
+        "질문·쟁점 형태인가('개요', '마무리' 같은 빈 소제목이면 감점) ③수치·날짜·버전 같은 "
+        "사실에 출처가 붙어 있고, 모르는 것은 모른다고 밝혔는가 ④비교·조건이 목록·표로 "
+        "정리되어 기계가 뽑아내기 쉬운가. 네 가지를 종합해 점수를 매기세요\n"
     )
     text = _claude(prompt, effort="low", max_tokens=512)
-    return _parse_checklist(text, ["검색의도", "반복제거"], scores=["제목/CTR", "네이버SEO", "모바일UX", "차별성"])
+    return _parse_checklist(
+        text,
+        ["검색의도", "반복제거"],
+        scores=["제목/CTR", "네이버SEO", "모바일UX", "차별성", "생성형검색"],
+    )
 
 
 def _parse_checklist(text: str, pass_fields: list[str], scores: Optional[list[str]] = None) -> dict[str, Any]:
@@ -845,6 +915,13 @@ def write_post(draft: dict[str, Any], content_type: str, target_date: dt.date) -
 
     source_links = "\n".join(f"- [{s['title']}]({s['url']})" for s in draft["sources"] if s.get("url"))
 
+    # excerpt는 meta description / og:description / JSON-LD description으로 그대로 나간다.
+    # 모델이 SUMMARY를 빠뜨렸거나 제목을 그대로 되풀이했으면 본문 첫 문단에서 뽑는다
+    # (제목 복사본을 그대로 두면 검색·AI 인용 양쪽에서 쓸 내용이 없다).
+    summary = clean_excerpt(draft.get("summary") or "")
+    if not summary or summary.replace(" ", "") == draft["title"].replace(" ", ""):
+        summary = derive_excerpt(draft["body"], fallback=draft["title"])
+
     frontmatter = (
         "---\n"
         f'title: "{draft["title"]}"\n'
@@ -854,7 +931,7 @@ def write_post(draft: dict[str, Any], content_type: str, target_date: dt.date) -
         "  - generated\n"
         f'category_label: "{category_label}"\n'
         "tags:\n" + "".join(f"  - {t}\n" for t in tags) +
-        f'excerpt: "{draft["title"]}"\n'
+        f'excerpt: "{summary}"\n'
         "toc: false\n"
         "---\n\n"
     )
@@ -959,6 +1036,8 @@ def _generate_valid_draft(content_type: str, sources: list[dict[str, Any]],
         quality_pass = (
             quality_result["검색의도"] and quality_result["반복제거"]
             and all(quality_result[k] >= SCORE_THRESHOLD for k in ("제목/CTR", "네이버SEO", "모바일UX", "차별성"))
+            # 생성형검색 점수는 기본값(0)에서는 아무것도 막지 않는다 — 분포를 먼저 쌓는다.
+            and quality_result["생성형검색"] >= GEO_SCORE_THRESHOLD
         )
         print(f"[DAILY_POST]   품질 검증: {quality_result}")
         if not quality_pass:
