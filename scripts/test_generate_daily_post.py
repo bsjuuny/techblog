@@ -113,6 +113,26 @@ class GithubRadarPostTests(unittest.TestCase):
         self.assertIn("https://github.com/example/featured", urls)
         self.assertNotIn("https://github.com/example/unused", urls)
 
+    def test_recent_titles_can_skip_previous_radar_issues(self) -> None:
+        original_posts_dir = daily.POSTS_DIR
+        with tempfile.TemporaryDirectory() as temp_dir:
+            daily.POSTS_DIR = Path(temp_dir)
+            today = dt.date.today().isoformat()
+            (daily.POSTS_DIR / f"{today}-github-radar-1.md").write_text(
+                '---\ntitle: "이번 주 GitHub Radar 5선"\n---\n', encoding="utf-8"
+            )
+            (daily.POSTS_DIR / f"{today}-news-2.md").write_text(
+                '---\ntitle: "오늘의 기술 뉴스"\n---\n', encoding="utf-8"
+            )
+            try:
+                all_titles = daily.get_recent_titles()
+                non_radar = daily.get_recent_titles(exclude_content_type="github_radar")
+            finally:
+                daily.POSTS_DIR = original_posts_dir
+
+        self.assertEqual(sorted(all_titles), ["오늘의 기술 뉴스", "이번 주 GitHub Radar 5선"])
+        self.assertEqual(non_radar, ["오늘의 기술 뉴스"])
+
     def test_write_post_uses_radar_category_and_tags(self) -> None:
         original_posts_dir = daily.POSTS_DIR
         original_slugify = daily._slugify

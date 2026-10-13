@@ -869,12 +869,23 @@ def _slugify(title: str, content_type: str) -> str:
     return f"{ascii_part}-{int(time.time())}"
 
 
-def get_recent_titles(days: int = RECENT_DAYS_FOR_DUP_CHECK) -> list[str]:
+def get_recent_titles(
+    days: int = RECENT_DAYS_FOR_DUP_CHECK,
+    *,
+    exclude_content_type: Optional[str] = None,
+) -> list[str]:
     cutoff = dt.date.today() - dt.timedelta(days=days)
+    excluded_slug = (
+        re.sub(r"[^a-zA-Z0-9]+", "-", exclude_content_type).strip("-") + "-"
+        if exclude_content_type
+        else None
+    )
     titles = []
     for f in POSTS_DIR.glob("*.md"):
         m = re.match(r"(\d{4}-\d{2}-\d{2})", f.name)
         if not m:
+            continue
+        if excluded_slug and f.name[len(m.group(1)) + 1:].startswith(excluded_slug):
             continue
         try:
             post_date = dt.date.fromisoformat(m.group(1))
@@ -1094,7 +1105,12 @@ def run(target_date: Optional[dt.date] = None) -> None:
             print(f"[DAILY_POST] GitHub Radar 소재 수집 실패: {e}")
             radar_sources = []
         if radar_sources:
-            draft = _generate_valid_draft("github_radar", radar_sources, recent_titles)
+            # 매주 같은 형식의 연재라 이전 회차 제목과 비교하면 팩트 검증의 중복충돌이 매번
+            # FAIL 난다(2026-10-13 수동 실행에서 3회 중 2회가 10-03 회차와 "사실상 동일"로 탈락).
+            # 회차 간 중복은 get_recent_featured_repo_urls()가 저장소 URL 단위로 60일간 막으므로,
+            # 같은 연재의 이전 회차만 제목 비교에서 뺀다. 다른 글과의 중복 검사는 그대로다.
+            radar_titles = get_recent_titles(exclude_content_type="github_radar")
+            draft = _generate_valid_draft("github_radar", radar_sources, radar_titles)
         if draft is None:
             print("[DAILY_POST] GitHub Radar 후보/검증 부족, 평소 유형으로 대체")
             content_type = _fallback_content_type(target_date)
