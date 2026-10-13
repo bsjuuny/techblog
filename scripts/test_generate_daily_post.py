@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import contextlib
 import datetime as dt
+import io
+import json
 import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 os.environ.setdefault("ANTHROPIC_API_KEY", "test-key-for-import-only")
@@ -163,6 +167,113 @@ class GithubRadarPostTests(unittest.TestCase):
         self.assertIn("  - github-radar", text)
         self.assertIn('category_label: "GitHub Radar · Auto"', text)
         self.assertIn("  - Open Source", text)
+
+
+class RunRetryAndFallbackTests(unittest.TestCase):
+    """요일 슬롯의 재시도·대체 경로와 watchdog 상태 마커. 외부 호출(API·Claude·git)은 전부 막는다."""
+
+    saturday = dt.date(2026, 10, 10)
+    sunday = dt.date(2026, 10, 11)
+    url = "https://github.com/example/project"
+    PASS_FACT = {"팩트": True, "최신성": True, "공식출처": True, "중복충돌": True}
+    FAIL_FACT = {**PASS_FACT, "중복충돌": False, "_reason": "최근 글과 주제가 사실상 동일"}
+    PASS_QUALITY = {
+        "검색의도": True, "반복제거": True, "제목/CTR": 90, "네이버SEO": 90,
+        "모바일UX": 90, "차별성": 90, "생성형검색": 90,
+    }
+
+    def draft(self, body: str | None = None) -> dict:
+        return {
+            "title": "제목", "summary": "", "body": body or f"본문 {self.url}",
+            "sources": [{"title": "example/project", "url": self.url}], "picked": None,
+        }
+
+    def run_day(self, target_date, *, facts, radar_bodies=None, radar_sources=None,
+                radar_error=None, commits=None):
+        sources = [{"title": "example/project", "url": self.url}]
+        calls = {"radar": 0, "excluded": []}
+        fact_iter = iter(facts)
+        bodies = iter(radar_bodies or [])
+
+        def recent_titles(*_args, **kwargs):
+            calls["excluded"].append(kwargs.get("exclude_content_type"))
+            return []
+
+        def radar_candidates(_date):
+            if radar_error:
+                raise radar_error
+            return sources if radar_sources is None else radar_sources
+
+        def radar_draft(_sources):
+            calls["radar"] += 1
+            return self.draft(next(bodies, None))
+
+        out = io.StringIO()
+        with tempfile.TemporaryDirectory() as temp_dir, mock.patch.multiple(
+            daily,
+            _STATUS_DIR=Path(temp_dir),
+            get_recent_titles=recent_titles,
+            fetch_github_radar_candidates=radar_candidates,
+            generate_draft_github_radar=radar_draft,
+            fetch_project_commits=lambda: commits or [],
+            generate_draft_engineering=lambda _s, pick_rank=0: self.draft(),
+            fetch_github_trending=lambda: sources,
+            fetch_hackernews_top=lambda: sources,
+            generate_draft_til=lambda _s, pick_rank=0: self.draft(),
+            generate_draft_news=lambda _s: self.draft(),
+            fact_check_agent=lambda _d, _t: next(fact_iter),
+            quality_check_agent=lambda _d, _c: self.PASS_QUALITY,
+            write_post=lambda _d, c, _t: Path(temp_dir) / f"{c}.md",
+            commit_and_push=lambda _p: None,
+        ), contextlib.redirect_stdout(out):
+            daily.run(target_date)
+            [marker_path] = Path(temp_dir).glob("techblog-*.json")
+            marker = json.loads(marker_path.read_text(encoding="utf-8"))
+        return marker, calls, out.getvalue()
+
+    def test_radar_retries_until_a_draft_passes(self) -> None:
+        marker, calls, log = self.run_day(
+            self.saturday,
+            radar_bodies=["본문 度 " + self.url, "본문 https://example.com/invented", None],
+            facts=[self.PASS_FACT],
+        )
+        self.assertEqual(calls["radar"], 3)
+        self.assertIn("github_radar", calls["excluded"])
+        self.assertIn("한자 오염 감지", log)
+        self.assertIn("링크 검증 실패", log)
+        self.assertEqual(marker["published"], True)
+        self.assertEqual(marker["contentType"], "github_radar")
+        self.assertNotIn("fallbackFrom", marker)
+
+    def test_radar_validation_failure_falls_back_and_is_recorded(self) -> None:
+        marker, calls, log = self.run_day(self.saturday, facts=[self.FAIL_FACT] * 3 + [self.PASS_FACT])
+        self.assertEqual(calls["radar"], 3)
+        self.assertIn("GitHub Radar 3번 시도 모두 검증 실패, 평소 유형으로 대체", log)
+        self.assertEqual(marker["published"], True)
+        self.assertEqual(marker["contentType"], daily._fallback_content_type(self.saturday))
+        self.assertEqual(marker["fallbackFrom"], "github_radar(3번 시도 모두 검증 실패)")
+
+    def test_radar_fallback_reason_distinguishes_shortage_and_fetch_error(self) -> None:
+        marker, calls, _ = self.run_day(self.saturday, radar_sources=[], facts=[self.PASS_FACT])
+        self.assertEqual(calls["radar"], 0)
+        self.assertEqual(marker["fallbackFrom"], "github_radar(후보 3개 미만)")
+
+        marker, _, _ = self.run_day(
+            self.saturday, radar_error=RuntimeError("rate limit"), facts=[self.PASS_FACT]
+        )
+        self.assertEqual(marker["fallbackFrom"], "github_radar(소재 수집 실패: rate limit)")
+
+    def test_engineering_without_commits_falls_back(self) -> None:
+        marker, _, _ = self.run_day(self.sunday, commits=[], facts=[self.PASS_FACT])
+        self.assertEqual(marker["fallbackFrom"], "engineering(이번 주 커밋 소재 없음)")
+        self.assertEqual(marker["contentType"], daily._fallback_content_type(self.sunday))
+
+    def test_skip_after_every_attempt_fails_keeps_type_in_marker(self) -> None:
+        marker, _, log = self.run_day(self.saturday, facts=[self.FAIL_FACT] * 6)
+        self.assertIn("오늘은 발행을 건너뜀", log)
+        self.assertEqual(marker["published"], False)
+        self.assertEqual(marker["reason"], "3번 시도 모두 검증 실패")
+        self.assertEqual(marker["fallbackFrom"], "github_radar(3번 시도 모두 검증 실패)")
 
 
 class PostMetaTest(unittest.TestCase):

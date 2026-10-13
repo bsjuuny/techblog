@@ -1073,15 +1073,20 @@ def _generate_valid_draft(content_type: str, sources: list[dict[str, Any]],
 _STATUS_DIR = Path("C:/github/scheduler/status")
 
 
-def write_watchdog_status_marker(published: bool, reason: str) -> None:
+def write_watchdog_status_marker(published: bool, reason: str, *,
+                                 content_type: str = "", fallback_from: str = "") -> None:
+    # pm2 로그는 10일치만 남는다. 토요일 Radar/일요일 개발기가 실제로 나갔는지, 평소 유형으로
+    # 대체됐는지는 이 파일에 남겨 두어야 나중에도 확인할 수 있다(watchdog은 존재 여부만 본다).
     try:
         _STATUS_DIR.mkdir(parents=True, exist_ok=True)
         date_key = dt.date.today().strftime("%Y%m%d")
+        marker = {"ranAt": dt.datetime.now().isoformat(), "published": published, "reason": reason}
+        if content_type:
+            marker["contentType"] = content_type
+        if fallback_from:
+            marker["fallbackFrom"] = fallback_from
         (_STATUS_DIR / f"techblog-{date_key}.json").write_text(
-            json.dumps(
-                {"ranAt": dt.datetime.now().isoformat(), "published": published, "reason": reason},
-                ensure_ascii=False,
-            ),
+            json.dumps(marker, ensure_ascii=False),
             encoding="utf-8",
         )
     except Exception as e:
@@ -1097,13 +1102,16 @@ def run(target_date: Optional[dt.date] = None) -> None:
 
     recent_titles = get_recent_titles()
     draft = None
+    fallback_from = ""  # 요일 전용 슬롯이 평소 유형으로 대체됐으면 "유형(사유)"
 
     if content_type == "github_radar":
+        why = ""
         try:
             radar_sources = fetch_github_radar_candidates(target_date)
         except Exception as e:
             print(f"[DAILY_POST] GitHub Radar 소재 수집 실패: {e}")
             radar_sources = []
+            why = f"소재 수집 실패: {e}"
         if radar_sources:
             # 매주 같은 형식의 연재라 이전 회차 제목과 비교하면 팩트 검증의 중복충돌이 매번
             # FAIL 난다(2026-10-13 수동 실행에서 3회 중 2회가 10-03 회차와 "사실상 동일"로 탈락).
@@ -1112,36 +1120,44 @@ def run(target_date: Optional[dt.date] = None) -> None:
             radar_titles = get_recent_titles(exclude_content_type="github_radar")
             draft = _generate_valid_draft("github_radar", radar_sources, radar_titles)
         if draft is None:
-            print("[DAILY_POST] GitHub Radar 후보/검증 부족, 평소 유형으로 대체")
+            why = why or ("후보 3개 미만" if not radar_sources else f"{MAX_ATTEMPTS}번 시도 모두 검증 실패")
+            print(f"[DAILY_POST] GitHub Radar {why}, 평소 유형으로 대체")
+            fallback_from = f"github_radar({why})"
             content_type = _fallback_content_type(target_date)
 
     if content_type == "engineering":
+        why = ""
         try:
             commits = fetch_project_commits()
         except Exception as e:
             print(f"[DAILY_POST] 커밋 소재 수집 실패: {e}")
             commits = []
+            why = f"소재 수집 실패: {e}"
         if commits:
             draft = _generate_valid_draft("engineering", commits, recent_titles)
         if draft is None:
             # 이번 주 소재가 없거나 검증을 못 넘으면 그날 자체를 건너뛰지 않고, 항상
             # 안정적인 소재가 있는 til/news로 대체한다 - engineering은 "있으면 좋은"
             # 보너스 슬롯이지, 발행 자체를 막을 이유가 아니다.
-            print("[DAILY_POST] 이번 주 개발기 소재/검증 실패, 평소 유형으로 대체")
+            why = why or ("이번 주 커밋 소재 없음" if not commits else f"{MAX_ATTEMPTS}번 시도 모두 검증 실패")
+            print(f"[DAILY_POST] 이번 주 개발기 {why}, 평소 유형으로 대체")
+            fallback_from = f"engineering({why})"
             content_type = _fallback_content_type(target_date)
+
+    marker = {"content_type": content_type, "fallback_from": fallback_from}
 
     if draft is None:
         try:
             sources = fetch_github_trending() if content_type == "til" else fetch_hackernews_top()
         except Exception as e:
             print(f"[DAILY_POST] 소재 수집 실패, 오늘은 건너뜀: {e}")
-            write_watchdog_status_marker(False, f"소재 수집 실패: {e}")
+            write_watchdog_status_marker(False, f"소재 수집 실패: {e}", **marker)
             return
         draft = _generate_valid_draft(content_type, sources, recent_titles)
 
     if draft is None:
         print(f"[DAILY_POST] {MAX_ATTEMPTS}번 시도 모두 검증 실패, 오늘은 발행을 건너뜀")
-        write_watchdog_status_marker(False, f"{MAX_ATTEMPTS}번 시도 모두 검증 실패")
+        write_watchdog_status_marker(False, f"{MAX_ATTEMPTS}번 시도 모두 검증 실패", **marker)
         return
 
     path = write_post(draft, content_type, target_date)
@@ -1150,10 +1166,10 @@ def run(target_date: Optional[dt.date] = None) -> None:
     try:
         commit_and_push(path)
         print("[DAILY_POST] git commit/push 완료 — 발행됨")
-        write_watchdog_status_marker(True, "발행 완료")
+        write_watchdog_status_marker(True, "발행 완료", **marker)
     except Exception as e:
         print(f"[DAILY_POST] git 발행 실패: {e}")
-        write_watchdog_status_marker(False, f"git 발행 실패: {e}")
+        write_watchdog_status_marker(False, f"git 발행 실패: {e}", **marker)
 
 
 if __name__ == "__main__":
