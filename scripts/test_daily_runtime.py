@@ -93,3 +93,10 @@ class RuntimeIntegrationTests(unittest.TestCase):
             runtime.launch(self.local, check_only=True)
         self.assertEqual(run.call_count, 1)
         self.assertIn("unittest", run.call_args.args[0])
+        self.assertIsNotNone(run.call_args.kwargs["stdout"])
+        self.assertIsNotNone(run.call_args.kwargs["stderr"])
+
+    def test_child_gets_stdio_when_parent_is_pythonw(self):
+        with mock.patch.object(runtime.sys, "stdout", None), mock.patch.object(runtime.sys, "stderr", None):
+            self.assertEqual(runtime.child_stdio(),
+                             {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL})

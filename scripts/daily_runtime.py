@@ -41,6 +41,14 @@ def verify(root, manifest):
         raise RuntimeError("Generator changed during execution; refuse publication")
 
 
+def child_stdio():
+    # pythonw has no console: a child started without explicit handles gets sys.stderr=None,
+    # so unittest crashes on its first write and exits 1 with no message (2026-10-20).
+    sys.stdout and sys.stdout.flush()
+    sys.stderr and sys.stderr.flush()
+    return {"stdout": sys.stdout or subprocess.DEVNULL, "stderr": sys.stderr or subprocess.DEVNULL}
+
+
 def launch(root, check_only=False):
     lock = Path(git(root, "rev-parse", "--absolute-git-dir")) / "daily-runtime.lock"
     # Exclusive creation covers sync, tests and the entire child lifetime. Never steal a lock.
@@ -50,12 +58,12 @@ def launch(root, check_only=False):
         manifest = synchronize(root)
         print("[DAILY_POST] runtime=" + json.dumps(manifest), flush=True)
         subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "scripts",
-                        "-p", "test_*.py"], cwd=root, check=True)
+                        "-p", "test_*.py"], cwd=root, check=True, **child_stdio())
         verify(root, manifest)
         if check_only:
             return 0
         env = dict(os.environ, TECHBLOG_RUNTIME=json.dumps(manifest))
         return subprocess.run([sys.executable, str(root / "scripts/generate_daily_post.py")],
-                              cwd=root, env=env).returncode
+                              cwd=root, env=env, **child_stdio()).returncode
     finally:
         lock.unlink(missing_ok=True)
