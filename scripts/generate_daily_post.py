@@ -24,6 +24,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import base64
 import html
 import json
 import os
@@ -33,6 +34,14 @@ import sys
 import time
 from pathlib import Path
 from typing import Any, Optional
+
+# Keep this before third-party imports and before loading any generator modules.
+if __name__ == "__main__":
+    from daily_runtime import launch, verify
+    runtime_root = Path(__file__).resolve().parent.parent
+    if not os.environ.get("TECHBLOG_RUNTIME"):
+        raise SystemExit(launch(runtime_root, check_only="--check-runtime" in sys.argv))
+    verify(runtime_root, json.loads(os.environ["TECHBLOG_RUNTIME"]))
 
 import anthropic
 import requests
@@ -659,8 +668,33 @@ def generate_draft_engineering(commits: list[dict[str, Any]], pick_rank: int = 0
     # 다른 커밋으로 바꿔볼 수 있다.
     ranked = sorted(commits, key=lambda c: -len(c.get("body") or ""))
     picked = ranked[min(pick_rank, len(ranked) - 1)]
+    # Retain follow-up fixes for contradiction checks, even when not cited in the footer.
+    context = [c for c in commits if c.get("repo") == picked.get("repo")]
+    sources = list(context)
+    match = re.match(r"https://github.com/([\w.-]+/[\w.-]+)/commit/", picked.get("url") or "")
+    if match:
+        api = f"https://api.github.com/repos/{match[1]}"
+        response = requests.get(api + "/commits/HEAD", timeout=20)
+        response.raise_for_status()
+        head = response.json()["sha"]
+        # Read current documentation touched by the selected history, pinned to HEAD.
+        paths = sorted(set(re.findall(r"(?:[\w.-]+/)*[\w.-]+\.md", "\n".join(
+            c.get("files_changed", "") + "\n" + c.get("body", "") for c in context))))
+        for doc_path in paths[:8]:
+            response = requests.get(api + "/contents/" + doc_path, params={"ref": head}, timeout=20)
+            if response.status_code == 404:
+                continue
+            response.raise_for_status()
+            doc = response.json()
+            if doc.get("encoding") != "base64" or doc.get("size", 0) > 1_000_000:
+                raise ValueError("Unsupported engineering document")
+            document = base64.b64decode(doc["content"]).decode("utf-8")[:40000]
+            sources.append({"title": f"{picked['repo']}: {doc_path}",
+                            "url": f"https://github.com/{match[1]}/blob/{head}/{doc_path}",
+                            "evidence": [{"url": f"https://github.com/{match[1]}/blob/{head}/{doc_path}",
+                                          "text": document, "kind": "repository_document"}]})
     url_instruction = (
-        f"- 커밋 링크는 정확히 이 URL만 사용하세요: {picked['url']}\n다른 URL은 절대 만들어내지 마세요.\n"
+        "- 아래 근거에 제공된 URL만 인용하세요. 다른 URL은 만들어내지 마세요.\n"
         if picked.get("url")
         else "- 이 저장소는 공개 링크가 없습니다. URL을 만들어내지 말고 링크 없이 서술하세요.\n"
     )
@@ -689,9 +723,13 @@ def generate_draft_engineering(commits: list[dict[str, Any]], pick_rank: int = 0
         "- 반드시 한국어로만 작성하세요. 중국어 한자나 다른 언어 단어를 절대 섞지 마세요.\n"
         + SUMMARY_OUTPUT_RULE
     )
+    prompt += (EVIDENCE_RULE + "\n후속 커밋과 최신 문서가 과거 미해결 설명을 대체하는지 대조하세요. "
+               "과거 커밋의 미해결 상태를 현재 상태로 쓰지 마세요. 운영 DB 적용은 저장소 기록과 "
+               "구분하고 직접 검증하지 않았다면 단정하지 마세요.\n" + json.dumps(sources, ensure_ascii=False))
     text = _claude(prompt, effort="medium")
     title, summary, body = _split_meta(text)
-    return {"title": title, "summary": summary, "body": body, "sources": commits, "picked": picked}
+    return {"title": title, "summary": summary, "body": body, "sources": sources,
+            "review_context": sources, "picked": picked}
 
 
 def _split_meta(text: str) -> tuple[str, str, str]:
@@ -740,7 +778,7 @@ def find_broken_mixed_words(body: str) -> list[str]:
 # ── 5. 팩트 검증 에이전트 ───────────────────────────────────────────────
 
 def fact_check_agent(draft: dict[str, Any], recent_titles: list[str]) -> dict[str, Any]:
-    source_block = json.dumps(draft["sources"], ensure_ascii=False, indent=2)
+    source_block = json.dumps(draft.get("review_context", draft["sources"]), ensure_ascii=False, indent=2)
     recent_block = "\n".join(f"- {t}" for t in recent_titles) or "(없음)"
     prompt = (
         "당신은 기술 블로그 팩트체크 담당 에디터입니다. 아래 원본 소재와 초안을 비교해서 "
@@ -763,7 +801,7 @@ def fact_check_agent(draft: dict[str, Any], recent_titles: list[str]) -> dict[st
         "알려진 배경 지식(유명 인물의 이력, 잘 알려진 기술 표준/용어, 공개적으로 검증된 과거 "
         "사건 개요 등)을 배경 설명으로 쓴 것은 지어낸 것이 아니므로 FAIL 아님 — 단 이런 배경 "
         "지식을 '오늘 이 기사가 새로 주장하는 내용'인 것처럼 혼동해서 서술했다면 FAIL\n"
-        "- 최신성: 원본 소재 기준으로 시의성 있게 서술했으면 PASS\n"
+        "- 최신성: 후속 커밋·최신 문서가 과거 미해결 설명을 대체하면 이를 반영해야 PASS. 저장소 기록만으로 운영 DB 적용을 직접 확인했다고 단정하면 FAIL\n"
         "- 공식출처: 원문을 실제 확보했고 기술 사양은 official_readme, 뉴스 사실은 original_article에서 확인해야 PASS. 개발기라면 제공된 실제 git 커밋 기록이 원문입니다. 링크 일치만으로는 PASS 아님. 프로젝트 주장을 독립 검증으로 단정하면 FAIL\n"
         "- 중복충돌: 최근 게시글과 주제가 사실상 동일하면 FAIL\n"
     )
@@ -1006,7 +1044,9 @@ def write_post(draft: dict[str, Any], content_type: str, target_date: dt.date) -
 
     footer = f"\n\n---\n\n**참고한 원본 소스**\n\n{source_links}\n"
 
-    path.write_text(frontmatter + disclosure + draft["body"] + footer, encoding="utf-8")
+    runtime = json.loads(os.environ.get("TECHBLOG_RUNTIME", "null"))
+    provenance = "<!-- generator-runtime: " + json.dumps(runtime) + " -->\n" if runtime else ""
+    path.write_text(frontmatter + disclosure + provenance + draft["body"] + footer, encoding="utf-8")
     return path
 
 
@@ -1025,7 +1065,16 @@ def commit_and_push(path: Path) -> None:
     _LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
     _LOCK_PATH.write_text(str(os.getpid()))
     try:
-        _run(["git", "pull", "--ff-only"])
+        # Never pull after generation: imported code would remain the old version.
+        try:
+            from scripts.daily_runtime import verify, git
+        except ModuleNotFoundError:
+            from daily_runtime import verify, git
+        manifest = json.loads(os.environ["TECHBLOG_RUNTIME"])
+        verify(REPO_ROOT, manifest)
+        _run(["git", "fetch", "origin", manifest["branch"]])
+        if git(REPO_ROOT, "rev-parse", "FETCH_HEAD") != manifest["sha"]:
+            raise RuntimeError("Remote changed during generation; review/retry without publishing")
         _run(["git", "add", str(path.relative_to(REPO_ROOT))])
         _run(["git", "commit", "-m", f"feat: auto-generate daily post ({path.stem})"])
         _run(["git", "push"])
@@ -1129,7 +1178,8 @@ def write_watchdog_status_marker(published: bool, reason: str, *,
     try:
         _STATUS_DIR.mkdir(parents=True, exist_ok=True)
         date_key = dt.date.today().strftime("%Y%m%d")
-        marker = {"ranAt": dt.datetime.now().isoformat(), "published": published, "reason": reason}
+        marker = {"ranAt": dt.datetime.now().isoformat(), "published": published, "reason": reason,
+                  "runtime": json.loads(os.environ.get("TECHBLOG_RUNTIME", "null"))}
         if content_type:
             marker["contentType"] = content_type
         if fallback_from:
@@ -1223,4 +1273,5 @@ def run(target_date: Optional[dt.date] = None) -> None:
 
 if __name__ == "__main__":
     run()
+
 

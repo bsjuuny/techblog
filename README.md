@@ -25,6 +25,13 @@ Frontend 개발 과정에서 마주친 문제, 기술 선택의 기준, 운영 �
 생성된 저장소를 성장 속도·최근 활동·언어 및 소유자 다양성으로 선정하며, 기존 글과 같은
 링크 허용 목록·팩트 검증·품질 점수 기준을 모두 통과한 경우에만 발행합니다.
 
+직접 실행 시 생성 전에 원격 기본 브랜치로 fast-forward하고, 회귀 테스트를 통과한
+새 Python 프로세스에서 생성합니다. 로컬 수정·다른 브랜치·동시 실행은 중단합니다.
+발행 없는 운영 점검은 `python scripts/generate_daily_post.py --check-runtime`입니다.
+최초 배포에는 실제 Windows 실행 폴더에서 한 번의 `git pull --ff-only`가 필요합니다.
+실행 SHA와 코드 해시는 글의 `generator-runtime` 주석과 watchdog 상태에 기록됩니다.
+사고 근거·운영 적용 확인 절차는 [실행 환경 검증 기록](scripts/RUNTIME_INCIDENT_20261018.md)을 참고하세요.
+
 ## 검색·AI 인용 (GEO)
 
 생성형 검색 엔진이 글을 인용할 수 있도록 다음을 유지합니다.
@@ -76,3 +83,4 @@ bundle exec jekyll serve --baseurl /techblog
 ```
 
 사용 가능한 클래스는 `note-box`, `summary-box`, `checklist-box`, `reference-box`, `warning-box`, `ai-note`입니다. 기존 Minimal Mistakes 알림 문법(`{: .notice--info }` 등)도 같은 디자인 체계로 표시됩니다.
+
