@@ -39,7 +39,7 @@ class SourceEvidenceTests(unittest.TestCase):
         sources = [self.source(), {"title": "unused dog brace", "url": "https://example.com/dog"}, self.source()]
         draft = {**self.draft(), "body": "원본 " + self.repo + "/#intro", "sources": sources}
         with tempfile.TemporaryDirectory() as temp, mock.patch.object(daily, "POSTS_DIR", Path(temp)):
-            text = daily.write_post(draft, "news", dt.date(2026, 10, 17)).read_text()
+            text = daily.write_post(draft, "news", dt.date(2026, 10, 17)).read_text(encoding="utf-8")
         footer = text.split("**참고한 원본 소스**")[1]
         self.assertEqual(footer.count(self.repo), 1)
         self.assertNotIn("dog", footer)
@@ -174,7 +174,7 @@ class SourceEvidenceTests(unittest.TestCase):
 
     def test_corrected_post_has_only_two_used_primary_sources(self):
         path = daily.POSTS_DIR / "2026-10-17-til-1792168366.md"
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
         body, footer = text.split("**참고한 원본 소스**")
         self.assertEqual(evidence.body_urls(footer), evidence.body_urls(body))
         self.assertEqual(len(evidence.body_urls(footer)), 2)
@@ -186,3 +186,4 @@ class SourceEvidenceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

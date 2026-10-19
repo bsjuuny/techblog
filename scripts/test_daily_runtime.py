@@ -21,7 +21,7 @@ class EngineeringRegressionTests(unittest.TestCase):
         draft = {"title": "회귀 검증", "body": f"수정 근거 [커밋]({urls[2]})",
                  "sources": sources, "picked": {"repo": "bizradar"}}
         with tempfile.TemporaryDirectory() as temp, mock.patch.object(daily, "POSTS_DIR", Path(temp)):
-            text = daily.write_post(draft, "engineering", dt.date(2026, 10, 18)).read_text()
+            text = daily.write_post(draft, "engineering", dt.date(2026, 10, 18)).read_text(encoding="utf-8")
         self.assertEqual(body_urls(text.split("**참고한 원본 소스**")[1]), {urls[2]})
 
     def test_followup_context_survives_source_filter(self):
@@ -34,7 +34,7 @@ class EngineeringRegressionTests(unittest.TestCase):
         self.assertEqual(draft["review_context"], [source, followup])
 
     def test_corrected_article_has_exactly_three_cited_sources(self):
-        text = (daily.POSTS_DIR / "2026-10-18-engineering-1792254655.md").read_text()
+        text = (daily.POSTS_DIR / "2026-10-18-engineering-1792254655.md").read_text(encoding="utf-8")
         body, footer = text.split("**참고한 원본 소스**")
         self.assertEqual(body_urls(body), body_urls(footer))
         self.assertEqual(len(body_urls(footer)), 3)
