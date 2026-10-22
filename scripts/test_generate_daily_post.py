@@ -369,7 +369,7 @@ class FactCheckAuditTests(unittest.TestCase):
         self.assertFalse(result["근거검증"])
         self.assertFalse(result["팩트"])
         self.assertIn("max_tokens", log)
-        self.assertIn("근거 감사 응답 처리 실패: JSONDecodeError", log)
+        self.assertIn("근거 감사 응답 처리 실패", log)
 
 
 if __name__ == "__main__":

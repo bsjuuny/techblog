@@ -51,10 +51,10 @@ from dotenv import load_dotenv
 # 테스트가 `from scripts import generate_daily_post`로 임포트하기도 한다. 두 경우에
 # sys.path 기준이 달라서 형제 모듈 임포트 경로도 달라진다.
 try:
-    from scripts.source_evidence import (enrich_sources, evidence_sources, used_sources, EVIDENCE_RULE, validate_claim_audit)
+    from scripts.source_evidence import (enrich_sources, evidence_sources, headline_only, used_sources, EVIDENCE_RULE, validate_claim_audit)
     from scripts.post_meta import clean_excerpt, derive_excerpt, normalize_headings
 except ModuleNotFoundError:  # 스크립트로 직접 실행될 때
-    from source_evidence import (enrich_sources, evidence_sources, used_sources, EVIDENCE_RULE, validate_claim_audit)
+    from source_evidence import (enrich_sources, evidence_sources, headline_only, used_sources, EVIDENCE_RULE, validate_claim_audit)
     from post_meta import clean_excerpt, derive_excerpt, normalize_headings
 
 if sys.stdout is not None:
@@ -73,6 +73,12 @@ _client = anthropic.Anthropic()
 # 매번 JSON이 잘려 파싱 실패 = 근거검증 실패로 처리돼 10-19부터 발행이 0건이었다.
 # 상한일 뿐이라 실제 사용량은 응답 길이만큼만 나간다.
 AUDIT_MAX_TOKENS = 16000
+# 체크리스트 판정은 답이 몇 줄뿐이지만 adaptive thinking이 같은 한도를 먹는다. 512에서는
+# thinking만으로 한도를 다 써서 빈 응답 = 전 항목 FAIL이 나왔다(2026-10-22 실측).
+CHECKLIST_MAX_TOKENS = 4096
+# 초안(1600~2200자 + SUMMARY/TITLE)도 thinking과 한도를 나눠 쓴다. 4096에서 news 초안이
+# 잘려 본문 끝이 사라진 채 검증에 들어간 사례가 있었다(2026-10-22 실측).
+DRAFT_MAX_TOKENS = 12000
 
 # 원래 qwen3 기준으로 실측(65~85점 분포)해 70점으로 잡았던 값이다. 생성·채점 모델을
 # Claude Sonnet 5로 교체한 뒤 다시 실측하니 qwen3보다 훨씬 엄격하게 채점해 6회 모두
@@ -511,7 +517,7 @@ def fetch_project_commits(days: int = 7, n: int = 8) -> list[dict[str, Any]]:
 
 # ── 3. 생성 에이전트 ───────────────────────────────────────────────────
 
-def _claude(prompt: str, *, effort: str = "medium", max_tokens: int = 4096) -> str:
+def _claude(prompt: str, *, effort: str = "medium", max_tokens: int = DRAFT_MAX_TOKENS) -> str:
     """단일 사용자 메시지로 Claude를 호출하고 텍스트만 반환한다.
 
     effort="low"는 형식이 정해진 체크리스트 판정(fact_check/quality_check)에,
@@ -618,10 +624,15 @@ def generate_draft_github_radar(sources: list[dict[str, Any]]) -> dict[str, Any]
 
 
 def generate_draft_news(sources: list[dict[str, Any]]) -> dict[str, Any]:
-    sources = enrich_sources(sources)
+    # 원문을 못 가져온 기사(차단·크기 초과 등)는 제목+링크로만 소개한다. 예전엔 본문에
+    # 링크만 들어가도 근거 감사가 무조건 실패해 그날 발행이 막혔다(2026-10-20 YouTube, 10-22 AP 403).
+    sources = [s if s["evidence"] else {**headline_only(s), "evidence": []}
+               for s in enrich_sources(sources)]
     def _source_line(s: dict[str, Any]) -> str:
         line = f"- {s['title']} (score {s['score']}) — {s['url']}"
-        if s.get("description"):
+        if s.get("evidence_error"):
+            line += "\n  (원문 수집 실패: 고른다면 제목과 링크만 한 줄로 소개하고 내용은 쓰지 마세요)"
+        elif s.get("description"):
             line += f"\n  기사 설명: {s['description']}"
         return line
 
@@ -812,11 +823,13 @@ def fact_check_agent(draft: dict[str, Any], recent_titles: list[str]) -> dict[st
         "사건 개요 등)을 배경 설명으로 쓴 것은 지어낸 것이 아니므로 FAIL 아님 — 단 이런 배경 "
         "지식을 '오늘 이 기사가 새로 주장하는 내용'인 것처럼 혼동해서 서술했다면 FAIL\n"
         "- 최신성: 후속 커밋·최신 문서가 과거 미해결 설명을 대체하면 이를 반영해야 PASS. 저장소 기록만으로 운영 DB 적용을 직접 확인했다고 단정하면 FAIL\n"
-        "- 공식출처: 원문을 실제 확보했고 기술 사양은 official_readme, 뉴스 사실은 original_article에서 확인해야 PASS. 개발기라면 제공된 실제 git 커밋 기록이 원문입니다. 링크 일치만으로는 PASS 아님. 프로젝트 주장을 독립 검증으로 단정하면 FAIL\n"
+        "- 공식출처: 원문을 실제 확보했고 기술 사양은 official_readme, 뉴스 사실은 original_article에서 확인해야 PASS. 개발기라면 제공된 실제 git 커밋 기록이 원문입니다. 링크 일치만으로는 PASS 아님. 프로젝트 주장을 독립 검증으로 단정하면 FAIL. "
+        "단 evidence_error가 있는 소재를 제목과 링크로만 소개하고 내용을 서술하지 않았다면 그 소재는 "
+        "이 항목과 팩트 항목에서 FAIL 사유가 아님(내용·수치·배경을 서술했으면 FAIL)\n"
         "- 중복충돌: 최근 게시글과 주제가 사실상 동일하면 FAIL\n"
     )
     prompt += EVIDENCE_RULE
-    text = _claude(prompt, effort="low", max_tokens=512)
+    text = _claude(prompt, effort="low", max_tokens=CHECKLIST_MAX_TOKENS)
     result = _parse_checklist(text, ["팩트", "최신성", "공식출처", "중복충돌"])
     if not all(result[k] for k in ("팩트", "최신성", "공식출처", "중복충돌")):
         return result
@@ -827,6 +840,8 @@ def fact_check_agent(draft: dict[str, Any], recent_titles: list[str]) -> dict[st
         "원문에 있는 것을 없다고 하거나, 원문 주장 이상의 단정, 근거 없는 배경 사실, "
         "미사용 자료 링크 나열은 실패입니다. 조언/추론은 명확히 구분된 경우만 제외하세요. "
         "수집 실패한 원문이나 짧은 description만으로 기술 사양을 검증하지 마세요. "
+        "evidence_error가 있는 소재는 제목·링크 소개만 허용되며(근거는 그 소재 URL의 제목 발췌), "
+        "그 소재의 내용에 대한 주장은 미지원입니다. "
         "JSON 객체만 반환하세요: "
         '{"all_claims_supported": true, "claims": [{"claim": "초안의 정확한 부분문자열", '
         '"supported": true, "url": "실제 evidence URL", "quote": "원문의 정확한 연속 발췌"}]}. '
@@ -838,7 +853,7 @@ def fact_check_agent(draft: dict[str, Any], recent_titles: list[str]) -> dict[st
         + json.dumps(draft, ensure_ascii=False)
     )
     try:
-        audit = json.loads(_claude(audit_prompt, effort="medium", max_tokens=AUDIT_MAX_TOKENS))
+        audit = _parse_json_object(_claude(audit_prompt, effort="medium", max_tokens=AUDIT_MAX_TOKENS))
         grounded = validate_claim_audit(audit, draft)
     except (ValueError, TypeError, KeyError) as e:
         print(f"[DAILY_POST]   근거 감사 응답 처리 실패: {type(e).__name__}: {e}")
@@ -848,6 +863,15 @@ def fact_check_agent(draft: dict[str, Any], recent_titles: list[str]) -> dict[st
         result["팩트"] = False
         result["_reason"] = "원문 근거 감사 실패 (미지원 주장·부정확한 발췌·응답 형식 확인)"
     return result
+
+
+def _parse_json_object(text: str) -> Any:
+    """"JSON만 반환" 지시에도 모델이 코드펜스(```json)나 앞뒤 문장을 붙일 때가 있다
+    (2026-10-22 실측) — 가장 바깥 {...}만 떼어 파싱한다."""
+    start, end = text.find("{"), text.rfind("}")
+    if start < 0 or end < start:
+        raise ValueError(f"JSON 객체 없음: {text[:40]!r}")
+    return json.loads(text[start:end + 1])
 
 
 # ── 6. 품질 검증 에이전트 ───────────────────────────────────────────────
@@ -924,7 +948,7 @@ def quality_check_agent(draft: dict[str, Any], content_type: str) -> dict[str, A
         "사실에 출처가 붙어 있고, 모르는 것은 모른다고 밝혔는가 ④비교·조건이 목록·표로 "
         "정리되어 기계가 뽑아내기 쉬운가. 네 가지를 종합해 점수를 매기세요\n"
     )
-    text = _claude(prompt, effort="low", max_tokens=512)
+    text = _claude(prompt, effort="low", max_tokens=CHECKLIST_MAX_TOKENS)
     return _parse_checklist(
         text,
         ["검색의도", "반복제거"],

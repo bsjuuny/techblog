@@ -70,6 +70,67 @@ class SourceEvidenceTests(unittest.TestCase):
         draft = {**self.draft(), "sources": [source], "body": self.repo}
         self.assertFalse(evidence.validate_claim_audit(self.audit(), draft))
 
+    def failed_news(self):
+        return {"title": "Oregon waterfall for sale", "url": "https://apnews.com/article/x", "score": 120,
+                "description": "Lawmakers want the state to buy the waterfall.",
+                "evidence": [], "evidence_error": "403 Client Error: Forbidden"}
+
+    def test_unfetched_source_may_be_linked_by_headline(self):
+        source = self.failed_news()
+        draft = {"title": "오늘의 소식", "summary": "",
+                 "body": "Oregon waterfall for sale 기사는 원문을 확인하지 못해 제목만 소개합니다. " + source["url"],
+                 "sources": [source], "picked": None}
+        audit = {"all_claims_supported": True, "claims": [
+            {"claim": "Oregon waterfall for sale", "supported": True,
+             "url": source["url"], "quote": "Oregon waterfall for sale"}]}
+        self.assertTrue(evidence.validate_claim_audit(audit, draft))
+
+    def test_unfetched_source_content_cannot_be_claimed(self):
+        source = self.failed_news()
+        draft = {"title": "오늘의 소식", "summary": "",
+                 "body": "의원들이 주 정부의 폭포 매입을 원합니다. " + source["url"],
+                 "sources": [source], "picked": None}
+        audit = {"all_claims_supported": True, "claims": [
+            {"claim": "의원들이 주 정부의 폭포 매입을 원합니다.", "supported": True,
+             "url": source["url"], "quote": "Lawmakers want the state to buy the waterfall."}]}
+        self.assertFalse(evidence.validate_claim_audit(audit, draft))
+
+    def test_news_prompt_marks_unfetched_source_link_only(self):
+        enriched = [{**self.failed_news(), "hn_discussion": "https://news.ycombinator.com/item?id=1"}]
+        with mock.patch.object(daily, "enrich_sources", return_value=enriched), \
+             mock.patch.object(daily, "_claude", return_value="본문\nTITLE: 제목") as claude:
+            draft = daily.generate_draft_news([self.failed_news()])
+        prompt = claude.call_args.args[0]
+        self.assertIn("원문 수집 실패", prompt)
+        self.assertNotIn("Lawmakers want", prompt)
+        self.assertEqual(draft["sources"][0]["evidence"], [])
+        self.assertNotIn("description", draft["sources"][0])
+
+    def test_elided_and_typographic_quotes_match_in_order(self):
+        doc = "We strongly recommend that you roll all variables.\nDon’t use async/.await in\nChrome\n. " \
+              "The sdist leaves out the cook folder entirely."
+        self.assertTrue(evidence.quote_in_document("Don't use async/.await in Chrome.", doc))
+        self.assertTrue(evidence.quote_in_document("leaves out the `cook` folder", doc))
+        self.assertTrue(evidence.quote_in_document(
+            "We strongly recommend that you roll ... leaves out the cook folder", doc))
+        self.assertTrue(evidence.quote_in_document(
+            "We strongly recommend that you roll … leaves out the cook folder", doc))
+
+    def test_elided_quote_rejects_reordered_short_or_invented_parts(self):
+        doc = "We strongly recommend that you roll all variables. The sdist leaves out the cook folder."
+        self.assertFalse(evidence.quote_in_document(
+            "leaves out the cook folder ... We strongly recommend that", doc))
+        self.assertFalse(evidence.quote_in_document("We ... folder", doc))
+        self.assertFalse(evidence.quote_in_document(
+            "We strongly recommend that you roll ... deletes every secret it finds", doc))
+        self.assertFalse(evidence.quote_in_document("...", doc))
+
+    def test_audit_json_wrapped_in_prose_or_fence_is_parsed(self):
+        wrapped = "다음은 감사 결과입니다.\n```json\n" + json.dumps(self.audit()) + "\n```"
+        self.assertEqual(daily._parse_json_object(wrapped), self.audit())
+        with self.assertRaises(ValueError):
+            daily._parse_json_object("감사 결과 없음")
+
     def test_til_researches_only_picked_subject_and_shares_original(self):
         unused = {**self.source(), "title": "unused/other", "url": "https://github.com/unused/other",
                   "description": "Shorter description still long enough"}
