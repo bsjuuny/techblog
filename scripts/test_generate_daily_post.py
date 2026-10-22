@@ -8,6 +8,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 
@@ -333,6 +334,42 @@ class PostMetaTest(unittest.TestCase):
     def test_code_fence_comments_are_not_treated_as_headings(self) -> None:
         body = "본문입니다.\n\n```bash\n# 설치 스크립트\nbrew install foo\n```\n"
         self.assertIn("# 설치 스크립트", normalize_headings(body, "제목"))
+
+
+class FactCheckAuditTests(unittest.TestCase):
+    """근거 감사 호출의 토큰 한도와 잘린 응답 처리. Claude 호출은 가짜 응답으로 대신한다."""
+
+    CHECKLIST = "팩트: PASS\n최신성: PASS\n공식출처: PASS\n중복충돌: PASS\n사유: 없음"
+    draft = {"title": "제목", "summary": "", "body": "본문", "sources": []}
+
+    def run_fact_check(self, audit_text: str, audit_stop: str):
+        calls = []
+
+        def create(**kw):
+            calls.append(kw)
+            text, stop = (self.CHECKLIST, "end_turn") if len(calls) == 1 else (audit_text, audit_stop)
+            return SimpleNamespace(
+                content=[SimpleNamespace(type="text", text=text)],
+                stop_reason=stop, usage=SimpleNamespace(output_tokens=kw["max_tokens"]),
+            )
+
+        out = io.StringIO()
+        with mock.patch.object(daily._client.messages, "create", create), \
+                contextlib.redirect_stdout(out):
+            result = daily.fact_check_agent(self.draft, [])
+        return result, calls, out.getvalue()
+
+    def test_audit_has_room_for_measured_response_length(self) -> None:
+        # 실측 감사 응답은 6.3~7.1k 출력 토큰이었다(2026-10-22). 4096이면 매번 잘린다.
+        _, calls, _ = self.run_fact_check('{"all_claims_supported": false}', "end_turn")
+        self.assertGreaterEqual(calls[1]["max_tokens"], 12000)
+
+    def test_truncated_audit_fails_closed_and_logs_why(self) -> None:
+        result, _, log = self.run_fact_check('{"all_claims_supported": true, "claims": [{"cl', "max_tokens")
+        self.assertFalse(result["근거검증"])
+        self.assertFalse(result["팩트"])
+        self.assertIn("max_tokens", log)
+        self.assertIn("근거 감사 응답 처리 실패: JSONDecodeError", log)
 
 
 if __name__ == "__main__":

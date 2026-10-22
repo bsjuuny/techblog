@@ -68,6 +68,12 @@ POSTS_DIR = REPO_ROOT / "_posts"
 CLAUDE_MODEL = os.getenv("DAILY_POST_MODEL", "claude-sonnet-5")
 _client = anthropic.Anthropic()
 
+# 근거 감사는 주장마다 원문 발췌를 붙인 JSON을 돌려줘서 응답이 길다. 실측(2026-10-22)
+# 주장 21개짜리 TIL 감사가 thinking 포함 6.3~7.1k 출력 토큰이었다 — 예전 4096 한도에서는
+# 매번 JSON이 잘려 파싱 실패 = 근거검증 실패로 처리돼 10-19부터 발행이 0건이었다.
+# 상한일 뿐이라 실제 사용량은 응답 길이만큼만 나간다.
+AUDIT_MAX_TOKENS = 16000
+
 # 원래 qwen3 기준으로 실측(65~85점 분포)해 70점으로 잡았던 값이다. 생성·채점 모델을
 # Claude Sonnet 5로 교체한 뒤 다시 실측하니 qwen3보다 훨씬 엄격하게 채점해 6회 모두
 # 55~68점대에 분포했고(문단 구조 개선 후에도 모바일UX 45→55 수준), 70점 기준으로는
@@ -518,6 +524,10 @@ def _claude(prompt: str, *, effort: str = "medium", max_tokens: int = 4096) -> s
         output_config={"effort": effort},
         messages=[{"role": "user", "content": prompt}],
     )
+    # adaptive thinking도 max_tokens를 같이 쓰므로, 한도에 걸리면 응답 텍스트가 중간에 잘린다.
+    if response.stop_reason == "max_tokens":
+        print(f"[DAILY_POST]   응답이 max_tokens({max_tokens})에서 잘림 "
+              f"(출력 {response.usage.output_tokens}토큰)")
     return "".join(block.text for block in response.content if block.type == "text").strip()
 
 
@@ -828,9 +838,10 @@ def fact_check_agent(draft: dict[str, Any], recent_titles: list[str]) -> dict[st
         + json.dumps(draft, ensure_ascii=False)
     )
     try:
-        audit = json.loads(_claude(audit_prompt, effort="medium", max_tokens=4096))
+        audit = json.loads(_claude(audit_prompt, effort="medium", max_tokens=AUDIT_MAX_TOKENS))
         grounded = validate_claim_audit(audit, draft)
-    except (ValueError, TypeError, KeyError):
+    except (ValueError, TypeError, KeyError) as e:
+        print(f"[DAILY_POST]   근거 감사 응답 처리 실패: {type(e).__name__}: {e}")
         grounded = False
     result["근거검증"] = grounded
     if not grounded:
