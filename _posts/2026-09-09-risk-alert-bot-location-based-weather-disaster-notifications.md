@@ -21,7 +21,7 @@ toc_sticky: true
 > 이 글은 작성자의 설계 판단과 실제 검증 과정을 바탕으로 AI와 함께 초안을 작성하고 문장을 다듬었습니다. 최종 내용과 공개 여부는 작성자가 직접 확인했습니다.
 {: .notice--info}
 
-[Risk Alert Bot](https://t.me/davids_riskAlertBot)은 텔레그램에서 위치를 최대 3곳(집·회사 등) 저장해두면, 그 지역의 실시간 날씨·6시간 이내 예보·대기질을 조회하고, 강수 시작 예측·긴급재난문자는 조건이 맞으면 자동으로 알림받는 개인용 봇이다. 서버 하나 없이 로컬 PC에서 PM2로 상시 구동하며, 기상청·카카오·행정안전부·한국환경공단의 공공데이터 API만으로 동작한다.
+[Risk Alert Bot](https://t.me/davids_riskAlertBot?start=techblog)은 텔레그램에서 위치를 최대 3곳(집·회사 등) 저장해두면, 그 지역의 실시간 날씨·6시간 이내 예보·대기질을 조회하고, 강수 시작 예측·긴급재난문자는 조건이 맞으면 자동으로 알림받는 개인용 봇이다. 서버 하나 없이 로컬 PC에서 PM2로 상시 구동하며, 기상청·카카오·행정안전부·한국환경공단의 공공데이터 API만으로 동작한다.
 
 이 글에서 다루고 싶은 건 봇 자체보다, 공공데이터 여러 개를 조합해 개인화된 알림을 만들 때 부딪힌 판단들이다.
 
@@ -115,4 +115,4 @@ async function fetchCurrentWeatherRaw(nx, ny) {
 
 공개 범위를 사용자 한 명에서 여러 명으로 넓히는 순간, "일단 되게 만들기"에서 "쿼터·동의·데이터 정리까지 감안한 설계"로 기준 자체가 달라진다는 걸 이번에 다시 확인했다.
 
-봇은 [@davids_riskAlertBot](https://t.me/davids_riskAlertBot)에서 직접 사용해볼 수 있다.
+봇은 [@davids_riskAlertBot](https://t.me/davids_riskAlertBot?start=techblog)에서 직접 사용해볼 수 있다.
