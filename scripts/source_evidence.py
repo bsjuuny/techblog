@@ -199,10 +199,16 @@ def validate_claim_audit(audit: dict, draft: dict) -> bool:
     # API metadata can prove stars/dates, but never technical specifications.
     for source in draft["sources"]:
         if source.get("evidence"):
-            add_document(source["url"], json.dumps(
+            metadata = json.dumps(
                 {k: v for k, v in source.items() if k not in {"evidence", "evidence_error"}},
                 ensure_ascii=False,
-            ))
+            )
+            add_document(source["url"], metadata)
+            # A README has its own URL, and the auditor may cite it for the repository's stars
+            # or creation date; both documents belong to the same source (2026-10-23).
+            for evidence in source["evidence"]:
+                if evidence["url"] != source["url"]:
+                    add_document(evidence["url"], metadata)
         elif "evidence" in source:
             # Fetch failed: the post may link it by headline, but nothing about its content.
             add_document(source["url"], json.dumps(headline_only(source), ensure_ascii=False))
@@ -216,6 +222,10 @@ def validate_claim_audit(audit: dict, draft: dict) -> bool:
         if problem:
             snippet = str(claim.get("claim", ""))[:60] if isinstance(claim, dict) else ""
             print(f"[DAILY_POST]   근거 감사 탈락({problem}): {snippet}")
+            if problem in {"원문에 없는 발췌", "수집하지 않은 URL"}:
+                # Without the cited URL and quote the cause can't be told from the log alone.
+                print(f"[DAILY_POST]     인용 URL: {claim.get('url')}")
+                print(f"[DAILY_POST]     발췌: {str(claim.get('quote', ''))[:160]!r}")
             return False
     return True
 

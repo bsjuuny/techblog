@@ -108,6 +108,27 @@ class SourceEvidenceTests(unittest.TestCase):
             {"claim": "300점", "supported": True, "url": url, "quote": "score: 300"}]}
         self.assertTrue(evidence.validate_claim_audit(audit, draft))
 
+    def test_repository_metadata_can_be_cited_via_readme_url(self):
+        source = {**self.source(), "created_at": "2026-10-12T08:41:19Z", "forks": 1207}
+        draft = {"title": "저장소", "summary": "", "body": "2026-10-12에 공개됐고 별 200개입니다. " + self.readme,
+                 "sources": evidence.evidence_sources([source]), "picked": None}
+        audit = {"all_claims_supported": True, "claims": [
+            {"claim": "2026-10-12에 공개됐고 별 200개", "supported": True, "url": self.readme,
+             "quote": '"stars": 200, "created_at": "2026-10-12T08:41:19Z"'}]}
+        self.assertTrue(evidence.validate_claim_audit(audit, draft))
+        audit["claims"][0]["quote"] = '"stars": 4438'
+        self.assertFalse(evidence.validate_claim_audit(audit, draft))
+
+    def test_quote_failure_logs_cited_url_and_quote(self):
+        audit = self.audit()
+        audit["claims"][0]["quote"] = "The model has 7B parameters."
+        evidence.print.reset_mock()
+        self.assertFalse(evidence.validate_claim_audit(audit, self.draft()))
+        logged = "\n".join(str(c.args[0]) for c in evidence.print.call_args_list)
+        self.assertIn("원문에 없는 발췌", logged)
+        self.assertIn("인용 URL: " + self.readme, logged)
+        self.assertIn("7B parameters", logged)
+
     def test_unfetched_source_may_be_linked_by_headline(self):
         source = self.failed_news()
         draft = {"title": "오늘의 소식", "summary": "",
