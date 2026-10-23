@@ -385,6 +385,13 @@ class FactCheckAuditTests(unittest.TestCase):
         _, calls, _ = self.run_fact_check('{"all_claims_supported": false}', "end_turn")
         self.assertGreaterEqual(calls[1]["max_tokens"], 12000)
 
+    def test_audit_scope_matches_checklist_background_rule(self) -> None:
+        # 체크리스트가 허용하는 일반 배경 지식을 감사만 실패로 보면 til/news가 통과할 수 없다.
+        _, calls, _ = self.run_fact_check('{"all_claims_supported": false}', "end_turn")
+        audit_prompt = calls[1]["messages"][0]["content"]
+        self.assertIn("판정에서 제외", audit_prompt)
+        self.assertNotIn("근거 없는 배경 사실", audit_prompt)
+
     def test_truncated_audit_fails_closed_and_logs_why(self) -> None:
         result, _, log = self.run_fact_check('{"all_claims_supported": true, "claims": [{"cl', "max_tokens")
         self.assertFalse(result["근거검증"])
