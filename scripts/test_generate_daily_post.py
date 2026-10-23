@@ -15,6 +15,18 @@ from unittest import mock
 os.environ.setdefault("ANTHROPIC_API_KEY", "test-key-for-import-only")
 
 from scripts import generate_daily_post as daily  # noqa: E402
+
+
+_usage_dir = tempfile.TemporaryDirectory()
+
+
+def setUpModule() -> None:
+    # Token tallies must never land in the real repo's .git (tonight's run would add to them).
+    daily._USAGE_DIR = Path(_usage_dir.name)
+
+
+def tearDownModule() -> None:
+    _usage_dir.cleanup()
 from scripts.post_meta import normalize_headings  # noqa: E402
 
 
@@ -355,6 +367,109 @@ class TilPromptTests(unittest.TestCase):
         prompt = claude.call_args.args[0]
         self.assertNotIn("14일", prompt)
         self.assertIn("경과 기간은 쓰지 말고", prompt)
+
+
+class CostControlTests(unittest.TestCase):
+    """원문 중복 제거·길이 상한·토큰 기록·하루 상한. 외부 호출은 전부 가짜로 대신한다."""
+
+    readme_text = "README-BODY " * 50
+    repo = "https://github.com/example/project"
+    readme_url = repo + "/blob/" + "a" * 40 + "/README.md"
+
+    def setUp(self) -> None:
+        self.usage_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.usage_dir.cleanup)
+        patcher = mock.patch.object(daily, "_USAGE_DIR", Path(self.usage_dir.name))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def picked(self) -> dict:
+        return {"title": "example/project", "url": self.repo, "stars": 10, "created_at": "2026-10-12",
+                "description": "A sufficiently descriptive project",
+                "evidence": [{"url": self.readme_url, "kind": "official_readme", "text": self.readme_text}]}
+
+    def test_til_prompt_carries_readme_once_and_uses_readme_cap(self) -> None:
+        with mock.patch.object(daily, "enrich_sources", return_value=[self.picked()]) as enrich, \
+             mock.patch.object(daily, "_claude", return_value="본문\nTITLE: 제목") as claude:
+            draft = daily.generate_draft_til([self.picked()])
+        self.assertEqual(enrich.call_args.kwargs["max_chars"], daily.README_MAX_CHARS)
+        self.assertEqual(claude.call_args.args[0].count(self.readme_text), 1)
+        self.assertEqual(json.dumps(draft["sources"], ensure_ascii=False).count(self.readme_text), 1)
+        self.assertIn(self.readme_url, {s["url"] for s in draft["sources"]})
+
+    def test_enrich_respects_max_chars(self) -> None:
+        from scripts import source_evidence
+        with mock.patch.object(source_evidence, "_article", return_value="x" * 50_000), \
+             mock.patch.object(source_evidence, "print", create=True):
+            [source] = source_evidence.enrich_sources([{"title": "t", "url": "https://example.com/a"}],
+                                                      max_chars=daily.NEWS_ARTICLE_MAX_CHARS)
+        self.assertEqual(len(source["evidence"][0]["text"]), daily.NEWS_ARTICLE_MAX_CHARS)
+
+    def test_news_fetches_only_top_scored_originals(self) -> None:
+        items = [{"title": f"story {i}", "url": f"https://example.com/{i}", "score": i, "description": ""}
+                 for i in range(8)]
+
+        def fake_enrich(sources, max_chars):
+            return [{**s, "evidence": [{"url": s["url"], "kind": "original_article", "text": "body"}]}
+                    for s in sources]
+
+        with mock.patch.object(daily, "enrich_sources", side_effect=fake_enrich) as enrich, \
+             mock.patch.object(daily, "_claude", return_value="본문\nTITLE: 제목"):
+            draft = daily.generate_draft_news(items)
+        [call] = enrich.call_args_list
+        self.assertEqual([s["score"] for s in call.args[0]], [7, 6, 5, 4, 3])
+        self.assertEqual(call.kwargs["max_chars"], daily.NEWS_ARTICLE_MAX_CHARS)
+        link_only = [s for s in draft["sources"] if s.get("evidence_error")]
+        self.assertEqual({s["score"] for s in link_only}, {0, 1, 2})
+        self.assertTrue(all(s["evidence"] == [] and "description" not in s for s in link_only))
+
+    def test_reviewers_get_sources_once_without_indent(self) -> None:
+        draft = {"title": "제목", "summary": "", "body": "본문", "sources": [self.picked()],
+                 "picked": self.picked(), "review_context": [self.picked()]}
+        prompts = []
+
+        def fake_claude(prompt, **_kw):
+            prompts.append(prompt)
+            return "팩트: PASS\n최신성: PASS\n공식출처: PASS\n중복충돌: PASS\n사유: 없음" if len(prompts) == 1 \
+                else '{"all_claims_supported": false}'
+
+        with mock.patch.object(daily, "_claude", side_effect=fake_claude):
+            daily.fact_check_agent(draft, [])
+        checklist, audit = prompts
+        self.assertEqual(checklist.count(self.readme_text), 1)
+        self.assertNotIn('\n  "', checklist)  # no indent=2 JSON
+        self.assertEqual(audit.count(self.readme_text), 1)
+
+    def fake_response(self, inp: int, out: int) -> SimpleNamespace:
+        return SimpleNamespace(content=[SimpleNamespace(type="text", text="ok")], stop_reason="end_turn",
+                               usage=SimpleNamespace(input_tokens=inp, output_tokens=out))
+
+    def test_usage_is_logged_and_accumulated_per_day(self) -> None:
+        out = io.StringIO()
+        responses = iter([self.fake_response(1000, 200), self.fake_response(3000, 400)])
+        with mock.patch.object(daily._client.messages, "create", lambda **_kw: next(responses)), \
+                contextlib.redirect_stdout(out):
+            daily._claude("a")
+            daily._claude("b")
+        self.assertEqual(daily.today_usage(), {"input": 4000, "output": 600, "calls": 2})
+        self.assertIn("토큰: 입력 3,000 / 출력 400 (오늘 누적 4,600", out.getvalue())
+
+    def test_budget_stops_remaining_attempts_and_marker_records_tokens(self) -> None:
+        daily._usage_path().write_text(json.dumps({"input": 140_000, "output": 20_000, "calls": 9}),
+                                       encoding="utf-8")
+        out = io.StringIO()
+        with tempfile.TemporaryDirectory() as status_dir, mock.patch.multiple(
+            daily, _STATUS_DIR=Path(status_dir), get_recent_titles=lambda *a, **k: [],
+            fetch_github_trending=lambda: [self.picked()], fetch_hackernews_top=lambda: [self.picked()],
+            generate_draft_til=mock.Mock(side_effect=AssertionError("must not generate")),
+            generate_draft_news=mock.Mock(side_effect=AssertionError("must not generate")),
+        ), contextlib.redirect_stdout(out):
+            daily.run(dt.date(2026, 10, 21))
+            [marker_path] = Path(status_dir).glob("techblog-*.json")
+            marker = json.loads(marker_path.read_text(encoding="utf-8"))
+        self.assertEqual(marker["reason"], "토큰 상한 도달")
+        self.assertEqual(marker["tokens"]["input"], 140_000)
+        self.assertIn("남은 시도 중단", out.getvalue())
 
 
 class FactCheckAuditTests(unittest.TestCase):

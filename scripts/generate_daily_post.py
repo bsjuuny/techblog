@@ -80,6 +80,18 @@ CHECKLIST_MAX_TOKENS = 4096
 # 잘려 본문 끝이 사라진 채 검증에 들어간 사례가 있었다(2026-10-22 실측).
 DRAFT_MAX_TOKENS = 12000
 
+# 원문 길이 상한. 10-17부터 원문을 소스당 4만 자까지 프롬프트에 넣으면서 하루 사용량이 이전의
+# 5~10배가 됐다(Console 일별 그래프). 근거 감사도 같은 잘린 원문으로 대조하므로 정합성은 유지된다.
+README_MAX_CHARS = 20_000
+NEWS_ARTICLE_MAX_CHARS = 12_000
+# news는 HN 상위 8건 중 점수 상위 몇 건만 원문을 붙이고, 나머지는 제목·링크만 준다.
+NEWS_FETCH_TOP = 5
+# 하루 토큰 상한(입력+출력). 넘으면 남은 시도를 멈추고 그날은 건너뛴다 — 검증이 계속 실패하는
+# 날 비싼 경로를 끝까지 타지 않게 하는 안전장치. 줄인 뒤 예상치는 하루 7만~10만.
+DAILY_TOKEN_BUDGET = int(os.getenv("DAILY_TOKEN_BUDGET", "150000"))
+# 하루 누계는 커밋되지 않는 .git 안에 둔다(daily-post.lock 과 같은 자리). 같은 날 재실행도 합산된다.
+_USAGE_DIR = REPO_ROOT / ".git"
+
 # 원래 qwen3 기준으로 실측(65~85점 분포)해 70점으로 잡았던 값이다. 생성·채점 모델을
 # Claude Sonnet 5로 교체한 뒤 다시 실측하니 qwen3보다 훨씬 엄격하게 채점해 6회 모두
 # 55~68점대에 분포했고(문단 구조 개선 후에도 모바일UX 45→55 수준), 70점 기준으로는
@@ -531,10 +543,41 @@ def _claude(prompt: str, *, effort: str = "medium", max_tokens: int = DRAFT_MAX_
         messages=[{"role": "user", "content": prompt}],
     )
     # adaptive thinking도 max_tokens를 같이 쓰므로, 한도에 걸리면 응답 텍스트가 중간에 잘린다.
+    _record_usage(response.usage)
     if response.stop_reason == "max_tokens":
         print(f"[DAILY_POST]   응답이 max_tokens({max_tokens})에서 잘림 "
               f"(출력 {response.usage.output_tokens}토큰)")
     return "".join(block.text for block in response.content if block.type == "text").strip()
+
+
+def _usage_path() -> Path:
+    return _USAGE_DIR / f"daily-post-tokens-{dt.date.today():%Y%m%d}.json"
+
+
+def today_usage() -> dict[str, int]:
+    try:
+        return json.loads(_usage_path().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"input": 0, "output": 0, "calls": 0}
+
+
+def _record_usage(usage: Any) -> None:
+    """호출마다 토큰을 로그에 남기고 하루 누계를 갱신한다 — 비용이 튀면 Console보다 먼저 보이게."""
+    total = today_usage()
+    spent_in, spent_out = getattr(usage, "input_tokens", 0) or 0, getattr(usage, "output_tokens", 0) or 0
+    total = {"input": total["input"] + spent_in, "output": total["output"] + spent_out,
+             "calls": total["calls"] + 1}
+    try:
+        _usage_path().write_text(json.dumps(total), encoding="utf-8")
+    except OSError as e:
+        print(f"[DAILY_POST]   토큰 누계 기록 실패(무시): {e}")
+    print(f"[DAILY_POST]   토큰: 입력 {spent_in:,} / 출력 {spent_out:,} "
+          f"(오늘 누적 {total['input'] + total['output']:,} / 상한 {DAILY_TOKEN_BUDGET:,})")
+
+
+def over_token_budget() -> bool:
+    used = today_usage()
+    return used["input"] + used["output"] >= DAILY_TOKEN_BUDGET
 
 
 def generate_draft_til(sources: list[dict[str, Any]], pick_rank: int = 0) -> dict[str, Any]:
@@ -546,9 +589,11 @@ def generate_draft_til(sources: list[dict[str, Any]], pick_rank: int = 0) -> dic
     ranked = sorted(candidates, key=lambda s: -len(s.get("description") or ""))
     picked = ranked[min(pick_rank, len(ranked) - 1)]
     # Only the selected subject is research material; other search hits are candidates.
-    [picked] = enrich_sources([picked])
+    [picked] = enrich_sources([picked], max_chars=README_MAX_CHARS)
     sources = evidence_sources([picked])
-    source_block = json.dumps([picked], ensure_ascii=False)
+    # 원문(README)은 아래 'Fetched source data'에 한 번만 넣는다. 예전엔 여기 JSON까지 세 번 들어갔다.
+    source_block = (f"- {picked['title']} | 설명: {picked.get('description') or '없음'} | "
+                    f"stars: {picked.get('stars')} | 생성일: {picked.get('created_at')} | URL: {picked['url']}")
     prompt = (
         "당신은 Frontend 개발자를 위한 기술 블로그 필자입니다. 아래는 실제 GitHub API에서 "
         "가져온, 최근 생성되어 인기가 급상승 중인 오픈소스 저장소 목록입니다.\n\n"
@@ -585,7 +630,7 @@ def generate_draft_til(sources: list[dict[str, Any]], pick_rank: int = 0) -> dic
 
 
 def generate_draft_github_radar(sources: list[dict[str, Any]]) -> dict[str, Any]:
-    sources = enrich_sources(sources)
+    sources = enrich_sources(sources, max_chars=README_MAX_CHARS)
     source_block = "\n".join(
         (
             f"- {source['title']} | 설명: {source['description']} | 언어: "
@@ -630,12 +675,16 @@ def generate_draft_github_radar(sources: list[dict[str, Any]]) -> dict[str, Any]
 def generate_draft_news(sources: list[dict[str, Any]]) -> dict[str, Any]:
     # 원문을 못 가져온 기사(차단·크기 초과 등)는 제목+링크로만 소개한다. 예전엔 본문에
     # 링크만 들어가도 근거 감사가 무조건 실패해 그날 발행이 막혔다(2026-10-20 YouTube, 10-22 AP 403).
-    sources = [s if s["evidence"] else {**headline_only(s), "evidence": []}
-               for s in enrich_sources(sources)]
+    # 원문은 점수 상위 NEWS_FETCH_TOP건만 붙인다 — 8건 전부 넣으면 초안 프롬프트만 약 2.7만 토큰이었다.
+    ranked = sorted(sources, key=lambda s: -(s.get("score") or 0))
+    fetched = enrich_sources(ranked[:NEWS_FETCH_TOP], max_chars=NEWS_ARTICLE_MAX_CHARS)
+    skipped = [{**headline_only(s), "evidence": [], "evidence_error": f"원문 미첨부(점수 상위 {NEWS_FETCH_TOP}건만 수집)"}
+               for s in ranked[NEWS_FETCH_TOP:]]
+    sources = [s if s["evidence"] else {**headline_only(s), "evidence": []} for s in fetched] + skipped
     def _source_line(s: dict[str, Any]) -> str:
         line = f"- {s['title']} (score {s['score']}) — {s['url']}"
         if s.get("evidence_error"):
-            line += "\n  (원문 수집 실패: 고른다면 제목과 링크만 한 줄로 소개하고 내용은 쓰지 마세요)"
+            line += "\n  (원문 없음: 고른다면 제목과 링크만 한 줄로 소개하고 내용은 쓰지 마세요)"
         elif s.get("description"):
             line += f"\n  기사 설명: {s['description']}"
         return line
@@ -713,7 +762,7 @@ def generate_draft_engineering(commits: list[dict[str, Any]], pick_rank: int = 0
             doc = response.json()
             if doc.get("encoding") != "base64" or doc.get("size", 0) > 1_000_000:
                 raise ValueError("Unsupported engineering document")
-            document = base64.b64decode(doc["content"]).decode("utf-8")[:40000]
+            document = base64.b64decode(doc["content"]).decode("utf-8")[:README_MAX_CHARS]
             sources.append({"title": f"{picked['repo']}: {doc_path}",
                             "url": f"https://github.com/{match[1]}/blob/{head}/{doc_path}",
                             "evidence": [{"url": f"https://github.com/{match[1]}/blob/{head}/{doc_path}",
@@ -806,7 +855,8 @@ def find_broken_mixed_words(body: str) -> list[str]:
 # ── 5. 팩트 검증 에이전트 ───────────────────────────────────────────────
 
 def fact_check_agent(draft: dict[str, Any], recent_titles: list[str]) -> dict[str, Any]:
-    source_block = json.dumps(draft.get("review_context", draft["sources"]), ensure_ascii=False, indent=2)
+    # 들여쓰기는 공백만 늘린다(원문이 길어 토큰 차이가 크다).
+    source_block = json.dumps(draft.get("review_context", draft["sources"]), ensure_ascii=False)
     recent_block = "\n".join(f"- {t}" for t in recent_titles) or "(없음)"
     prompt = (
         "당신은 기술 블로그 팩트체크 담당 에디터입니다. 아래 원본 소재와 초안을 비교해서 "
@@ -864,7 +914,8 @@ def fact_check_agent(draft: dict[str, Any], recent_titles: list[str]) -> dict[st
         "README는 저자의 주장으로만 검증하며 독립 실험을 한 것으로 취급하지 마세요. "
         "API 통계(stars·날짜)는 저장소 URL과 원본 JSON의 정확한 발췌로 검증할 수 있지만 사양의 근거로 쓸 수 없습니다. "
         "개발기는 실제 git 커밋의 제목·본문이 근거입니다. 비공개 커밋 URL은 local:<sha>로 표기하세요.\n"
-        + json.dumps(draft, ensure_ascii=False)
+        # picked·review_context는 sources와 같은 원문을 한 번 더 담고 있어 감사에는 넣지 않는다.
+        + json.dumps({k: draft.get(k) for k in ("title", "summary", "body", "sources")}, ensure_ascii=False)
     )
     try:
         audit = _parse_json_object(_claude(audit_prompt, effort="medium", max_tokens=AUDIT_MAX_TOKENS))
@@ -1140,6 +1191,11 @@ def _generate_valid_draft(content_type: str, sources: list[dict[str, Any]],
     검수를 통과 못 하는 초안을 내는 경우가 있어, 한 번 실패했다고 그날 발행을
     포기하지 않고 다시 시도한다."""
     for attempt in range(1, MAX_ATTEMPTS + 1):
+        if over_token_budget():
+            used = today_usage()
+            print(f"[DAILY_POST] 오늘 토큰 상한 도달({used['input'] + used['output']:,} / "
+                  f"{DAILY_TOKEN_BUDGET:,}), 남은 시도 중단")
+            return None
         print(f"[DAILY_POST] 생성 시도 {attempt}/{MAX_ATTEMPTS}")
         try:
             # 매 시도마다 다른 저장소/커밋을 골라본다 (같은 주제가 계속 실패하는 경우 대비).
@@ -1229,6 +1285,7 @@ def write_watchdog_status_marker(published: bool, reason: str, *,
         date_key = dt.date.today().strftime("%Y%m%d")
         marker = {"ranAt": dt.datetime.now().isoformat(), "published": published, "reason": reason,
                   "runtime": json.loads(os.environ.get("TECHBLOG_RUNTIME", "null"))}
+        marker["tokens"] = today_usage()
         if content_type:
             marker["contentType"] = content_type
         if fallback_from:
@@ -1268,7 +1325,8 @@ def run(target_date: Optional[dt.date] = None) -> None:
             radar_titles = get_recent_titles(exclude_content_type="github_radar")
             draft = _generate_valid_draft("github_radar", radar_sources, radar_titles)
         if draft is None:
-            why = why or ("후보 3개 미만" if not radar_sources else f"{MAX_ATTEMPTS}번 시도 모두 검증 실패")
+            why = why or ("후보 3개 미만" if not radar_sources else
+                          "토큰 상한 도달" if over_token_budget() else f"{MAX_ATTEMPTS}번 시도 모두 검증 실패")
             print(f"[DAILY_POST] GitHub Radar {why}, 평소 유형으로 대체")
             fallback_from = f"github_radar({why})"
             content_type = _fallback_content_type(target_date)
@@ -1287,7 +1345,8 @@ def run(target_date: Optional[dt.date] = None) -> None:
             # 이번 주 소재가 없거나 검증을 못 넘으면 그날 자체를 건너뛰지 않고, 항상
             # 안정적인 소재가 있는 til/news로 대체한다 - engineering은 "있으면 좋은"
             # 보너스 슬롯이지, 발행 자체를 막을 이유가 아니다.
-            why = why or ("이번 주 커밋 소재 없음" if not commits else f"{MAX_ATTEMPTS}번 시도 모두 검증 실패")
+            why = why or ("이번 주 커밋 소재 없음" if not commits else
+                          "토큰 상한 도달" if over_token_budget() else f"{MAX_ATTEMPTS}번 시도 모두 검증 실패")
             print(f"[DAILY_POST] 이번 주 개발기 {why}, 평소 유형으로 대체")
             fallback_from = f"engineering({why})"
             content_type = _fallback_content_type(target_date)
@@ -1304,8 +1363,9 @@ def run(target_date: Optional[dt.date] = None) -> None:
         draft = _generate_valid_draft(content_type, sources, recent_titles)
 
     if draft is None:
-        print(f"[DAILY_POST] {MAX_ATTEMPTS}번 시도 모두 검증 실패, 오늘은 발행을 건너뜀")
-        write_watchdog_status_marker(False, f"{MAX_ATTEMPTS}번 시도 모두 검증 실패", **marker)
+        why = "토큰 상한 도달" if over_token_budget() else f"{MAX_ATTEMPTS}번 시도 모두 검증 실패"
+        print(f"[DAILY_POST] {why}, 오늘은 발행을 건너뜀")
+        write_watchdog_status_marker(False, why, **marker)
         return
 
     path = write_post(draft, content_type, target_date)

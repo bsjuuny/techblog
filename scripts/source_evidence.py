@@ -95,8 +95,12 @@ def _article(url: str) -> str:
     raise ValueError("Too many source redirects")
 
 
-def enrich_sources(sources: list[dict]) -> list[dict]:
-    """Attach fetched text, provenance and failure state; never invent missing text."""
+def enrich_sources(sources: list[dict], max_chars: int = 40_000) -> list[dict]:
+    """Attach fetched text, provenance and failure state; never invent missing text.
+
+    max_chars bounds what reaches every prompt and the audit alike, so a quote can only
+    come from text the writer actually saw.
+    """
     enriched = []
     for source in sources:
         source = dict(source)
@@ -123,7 +127,7 @@ def enrich_sources(sources: list[dict]) -> list[dict]:
                 evidence_url, kind = url, "original_article"
             if not text.strip():
                 raise ValueError("Empty source")
-            source["evidence"] = [{"url": evidence_url, "kind": kind, "text": text[:40_000]}]
+            source["evidence"] = [{"url": evidence_url, "kind": kind, "text": text[:max_chars]}]
         except (requests.RequestException, ValueError, KeyError, UnicodeError, OSError) as exc:
             source["evidence_error"] = str(exc)
             print(f"[DAILY_POST] 원문 수집 실패({url}): {exc}")
@@ -155,13 +159,17 @@ EVIDENCE_RULE = (
 
 
 def evidence_sources(sources: list[dict]) -> list[dict]:
-    """Expose only fetched documents as citable sources (not links inside them)."""
+    """Expose only fetched documents as citable sources (not links inside them).
+
+    The added entries carry the citable URL only: the text already lives in the source's
+    evidence, and a second copy doubled every prompt that serializes the sources.
+    """
     result = list(sources)
     for source in sources:
         for evidence in source.get("evidence", []):
-            if evidence.get("text"):
+            if evidence.get("text") and evidence["url"] != source.get("url"):
                 result.append({"title": source["title"] + " — " + evidence["kind"],
-                               "url": evidence["url"], "document": evidence["text"]})
+                               "url": evidence["url"]})
     return result
 
 

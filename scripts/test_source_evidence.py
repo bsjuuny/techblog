@@ -14,6 +14,18 @@ from scripts import generate_daily_post as daily
 from scripts import source_evidence as evidence
 
 
+_usage_dir = tempfile.TemporaryDirectory()
+
+
+def setUpModule() -> None:
+    # Token tallies must never land in the real repo's .git (tonight's run would add to them).
+    daily._USAGE_DIR = Path(_usage_dir.name)
+
+
+def tearDownModule() -> None:
+    _usage_dir.cleanup()
+
+
 class SourceEvidenceTests(unittest.TestCase):
     repo = "https://github.com/example/project"
     readme = repo + "/blob/" + "a" * 40 + "/README.md"
@@ -122,7 +134,7 @@ class SourceEvidenceTests(unittest.TestCase):
              mock.patch.object(daily, "_claude", return_value="본문\nTITLE: 제목") as claude:
             draft = daily.generate_draft_news([self.failed_news()])
         prompt = claude.call_args.args[0]
-        self.assertIn("원문 수집 실패", prompt)
+        self.assertIn("원문 없음", prompt)
         self.assertNotIn("Lawmakers want", prompt)
         self.assertEqual(draft["sources"][0]["evidence"], [])
         self.assertNotIn("description", draft["sources"][0])
