@@ -182,16 +182,22 @@ def validate_claim_audit(audit: dict, draft: dict) -> bool:
         print("[DAILY_POST]   근거 감사 탈락(주장 목록 없음)")
         return False
     documents = {e["url"]: e["text"] for s in draft["sources"] for e in s.get("evidence", [])}
+
+    def add_document(url: str, text: str) -> None:
+        # A news article's evidence URL is the source URL itself: append, never overwrite
+        # the fetched text with metadata (that made every article quote fail until 2026-10-23).
+        documents[url] = documents[url] + "\n" + text if url in documents else text
+
     # API metadata can prove stars/dates, but never technical specifications.
     for source in draft["sources"]:
         if source.get("evidence"):
-            documents[source["url"]] = json.dumps(
+            add_document(source["url"], json.dumps(
                 {k: v for k, v in source.items() if k not in {"evidence", "evidence_error"}},
                 ensure_ascii=False,
-            )
+            ))
         elif "evidence" in source:
             # Fetch failed: the post may link it by headline, but nothing about its content.
-            documents[source["url"]] = json.dumps(headline_only(source), ensure_ascii=False)
+            add_document(source["url"], json.dumps(headline_only(source), ensure_ascii=False))
     # Engineering evidence is the fetched local git record, not an external article.
     for source in draft["sources"]:
         if source.get("sha") and source.get("body"):
@@ -229,8 +235,9 @@ MIN_ELIDED_PART = 12
 def _normalize_text(text: str) -> str:
     # HTML text extraction joins inline tags with newlines ("<code>x</code>." -> "x\n."),
     # so whitespace before punctuation is not meaningful.
-    # Markdown backticks are added by the auditor when it copies the draft's style.
-    text = " ".join(text.translate(_TYPOGRAPHY).replace("`", "").split())
+    # Markdown backticks are added by the auditor when it copies the draft's style, and
+    # metadata is quoted with or without JSON's double quotes ("stars": 3572 vs stars: 3572).
+    text = " ".join(text.translate(_TYPOGRAPHY).replace("`", "").replace('"', "").split())
     return re.sub(r" (?=[.,;:!?)\]])", "", text)
 
 

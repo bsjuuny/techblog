@@ -83,6 +83,19 @@ class SourceEvidenceTests(unittest.TestCase):
                 "description": "Lawmakers want the state to buy the waterfall.",
                 "evidence": [], "evidence_error": "403 Client Error: Forbidden"}
 
+    def test_article_text_is_not_replaced_by_its_metadata(self):
+        url = "https://example.com/posts/docker"
+        article = "Unlike VMs, containers are just processes with special restrictions on them."
+        source = {"title": "Docker is weird", "url": url, "score": 300,
+                  "evidence": [{"url": url, "kind": "original_article", "text": article}]}
+        draft = {"title": "오늘의 소식", "summary": "",
+                 "body": "컨테이너는 제약이 걸린 프로세스이고 300점을 받았습니다. " + url,
+                 "sources": evidence.evidence_sources([source]), "picked": None}
+        audit = {"all_claims_supported": True, "claims": [
+            {"claim": "컨테이너는 제약이 걸린 프로세스", "supported": True, "url": url, "quote": article},
+            {"claim": "300점", "supported": True, "url": url, "quote": "score: 300"}]}
+        self.assertTrue(evidence.validate_claim_audit(audit, draft))
+
     def test_unfetched_source_may_be_linked_by_headline(self):
         source = self.failed_news()
         draft = {"title": "오늘의 소식", "summary": "",
