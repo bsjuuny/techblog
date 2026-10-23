@@ -19,6 +19,14 @@ class SourceEvidenceTests(unittest.TestCase):
     readme = repo + "/blob/" + "a" * 40 + "/README.md"
     text = "The model has 740M parameters. It supports more than 100 languages. Windows and Linux are beta."
 
+    def setUp(self):
+        # The launcher runs these tests before every daily run, so their log lines would
+        # land in the scheduler log next to the real run.
+        for module in (evidence, daily):
+            patcher = mock.patch.object(module, "print", create=True)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
     def source(self):
         return {"title": "example/project", "url": self.repo,
                 "description": "A sufficiently descriptive local file search application",

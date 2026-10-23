@@ -551,7 +551,7 @@ def generate_draft_til(sources: list[dict[str, Any]], pick_rank: int = 0) -> dic
     source_block = json.dumps([picked], ensure_ascii=False)
     prompt = (
         "당신은 Frontend 개발자를 위한 기술 블로그 필자입니다. 아래는 실제 GitHub API에서 "
-        "가져온, 최근 14일 내 생성되어 인기가 급상승 중인 오픈소스 저장소 목록입니다.\n\n"
+        "가져온, 최근 생성되어 인기가 급상승 중인 오픈소스 저장소 목록입니다.\n\n"
         f"{source_block}\n\n"
         f"이 중 '{picked['title']}'을(를) 주제로 개발자를 위한 기술 노트를 "
         "한국어로 작성하세요.\n\n"
@@ -559,6 +559,10 @@ def generate_draft_til(sources: list[dict[str, Any]], pick_rank: int = 0) -> dic
         "규칙 (반드시 지킬 것):\n"
         "- 실제 설명과 함께 제공된 공식 README의 내용만 사실로 다루세요.\n"
         "- 버전 번호, 출시일, 구체적 기능 목록처럼 위에 없는 세부사항은 절대 지어내지 마세요.\n"
+        # 예전엔 위 소개문에 '최근 14일 내 생성'이라고 써서 모델이 '공개 14일 만에'로 옮겨
+        # 적었고, 실제 경과일과 달라 팩트 검증에서 계속 탈락했다(2026-10-22·23).
+        "- 'N일 만에', '2주 만에' 같은 경과 기간은 쓰지 말고, 필요하면 created_at 날짜를 그대로 "
+        "쓰세요(예: '2026-10-12에 공개된'). 별 개수도 제공된 stars 값 그대로만 쓰세요.\n"
         "- 대신 이 도구가 속한 기술 분야에 대한 개념 설명, 왜 이런 도구가 필요한지, 기존 "
         "방식과 비교했을 때 무엇이 다른지, 실무에서 도입할 때 고려할 점, 어떤 상황에 특히 "
         "유용한지처럼 여러 각도에서 풀어서 다루세요. 같은 말을 다른 문장으로 반복하지 말고 "
@@ -790,10 +794,13 @@ def find_stray_hanja(body: str) -> list[str]:
 # ("암azon" = "아마존"을 쓰다 영어로 튄 경우)는 한국어 어법상 나오지 않는 패턴이라 —
 # 모델이 단어 중간에 언어를 전환하며 깨뜨린 결과로 보고 잡아낸다.
 _BROKEN_WORD_RE = re.compile(r"[가-힣]+[a-zA-Z]{2,}")
+# 단, 한글 접두어 + 대문자 약어("비ASCII", "맥OS", "웹API")는 정상 표기다 — 이걸 깨진
+# 단어로 잡아 멀쩡한 초안을 버린 적이 있다(2026-10-22 '맥OS', 10-23 '비ASCII').
+_ACRONYM_SUFFIX_RE = re.compile(r"[가-힣]+[A-Z0-9]{2,}")
 
 
 def find_broken_mixed_words(body: str) -> list[str]:
-    return sorted(set(_BROKEN_WORD_RE.findall(body)))
+    return sorted({w for w in _BROKEN_WORD_RE.findall(body) if not _ACRONYM_SUFFIX_RE.fullmatch(w)})
 
 
 # ── 5. 팩트 검증 에이전트 ───────────────────────────────────────────────

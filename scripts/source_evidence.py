@@ -173,6 +173,9 @@ def validate_claim_audit(audit: dict, draft: dict) -> bool:
     """
     if not isinstance(audit, dict) or audit.get("all_claims_supported") is not True:
         print("[DAILY_POST]   근거 감사 탈락(감사 모델이 미지원 주장 있음으로 판정)")
+        for claim in (audit.get("claims") if isinstance(audit, dict) else None) or []:
+            if isinstance(claim, dict) and claim.get("supported") is not True:
+                print(f"[DAILY_POST]     미지원: {str(claim.get('claim', ''))[:80]}")
         return False
     claims = audit.get("claims")
     if not isinstance(claims, list) or not claims:

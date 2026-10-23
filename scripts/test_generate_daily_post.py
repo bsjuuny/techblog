@@ -336,6 +336,27 @@ class PostMetaTest(unittest.TestCase):
         self.assertIn("# 설치 스크립트", normalize_headings(body, "제목"))
 
 
+class MixedWordTests(unittest.TestCase):
+    def test_korean_prefix_with_acronym_is_not_broken(self) -> None:
+        body = "비ASCII 문자와 맥OS, 웹API 지원. GPT가 iPhone에서 동작한다."
+        self.assertEqual(daily.find_broken_mixed_words(body), [])
+
+    def test_language_switch_inside_word_is_still_caught(self) -> None:
+        self.assertEqual(daily.find_broken_mixed_words("암azon 서비스"), ["암azon"])
+
+
+class TilPromptTests(unittest.TestCase):
+    def test_prompt_does_not_suggest_an_age_and_forbids_elapsed_periods(self) -> None:
+        source = {"title": "example/project", "url": "https://github.com/example/project",
+                  "description": "A sufficiently descriptive project", "created_at": "2026-10-12T00:00:00Z"}
+        with mock.patch.object(daily, "enrich_sources", return_value=[source]), \
+             mock.patch.object(daily, "_claude", return_value="본문\nTITLE: 제목") as claude:
+            daily.generate_draft_til([source])
+        prompt = claude.call_args.args[0]
+        self.assertNotIn("14일", prompt)
+        self.assertIn("경과 기간은 쓰지 말고", prompt)
+
+
 class FactCheckAuditTests(unittest.TestCase):
     """근거 감사 호출의 토큰 한도와 잘린 응답 처리. Claude 호출은 가짜 응답으로 대신한다."""
 
