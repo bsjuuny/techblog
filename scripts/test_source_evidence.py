@@ -119,6 +119,30 @@ class SourceEvidenceTests(unittest.TestCase):
         audit["claims"][0]["quote"] = '"stars": 4438'
         self.assertFalse(evidence.validate_claim_audit(audit, draft))
 
+    def test_unsupported_claim_logs_auditor_reason(self):
+        audit = {"all_claims_supported": False, "claims": [
+            {"claim": "모델 크기는 740M입니다.", "supported": False, "url": self.readme,
+             "quote": "The model has 740M parameters.", "reason": "원문은 탈옥 불필요를 말하지 않음"}]}
+        evidence.print.reset_mock()
+        self.assertFalse(evidence.validate_claim_audit(audit, self.draft()))
+        logged = "\n".join(str(c.args[0]) for c in evidence.print.call_args_list)
+        self.assertIn("이유: 원문은 탈옥 불필요를 말하지 않음", logged)
+
+    def test_til_prompt_names_readme_url_and_draft_without_it_skips_reviewers(self):
+        with mock.patch.object(daily, "enrich_sources", return_value=[self.source()]), \
+             mock.patch.object(daily, "_claude", return_value="본문 " + self.readme + "\nTITLE: 제목") as claude:
+            daily.generate_draft_til([self.source()])
+        self.assertIn(f"README URL({self.readme})을 반드시 인용", claude.call_args.args[0])
+
+        draft = {"title": "제목", "summary": "", "body": "README에 따르면 740M입니다. " + self.repo,
+                 "sources": evidence.evidence_sources([self.source()]), "picked": self.source()}
+        reviewer = mock.Mock(side_effect=AssertionError("reviewer must not be called"))
+        with mock.patch.multiple(daily, generate_draft_til=lambda _s, pick_rank=0: draft,
+                                 fact_check_agent=reviewer, MAX_ATTEMPTS=1):
+            self.assertIsNone(daily._generate_valid_draft("til", [self.source()], []))
+        logged = "\n".join(str(c.args[0]) for c in daily.print.call_args_list)
+        self.assertIn("README URL 인용 누락", logged)
+
     def test_quote_failure_logs_cited_url_and_quote(self):
         audit = self.audit()
         audit["claims"][0]["quote"] = "The model has 7B parameters."

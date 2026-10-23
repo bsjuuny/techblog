@@ -51,10 +51,10 @@ from dotenv import load_dotenv
 # 테스트가 `from scripts import generate_daily_post`로 임포트하기도 한다. 두 경우에
 # sys.path 기준이 달라서 형제 모듈 임포트 경로도 달라진다.
 try:
-    from scripts.source_evidence import (enrich_sources, evidence_sources, headline_only, used_sources, EVIDENCE_RULE, validate_claim_audit)
+    from scripts.source_evidence import (body_urls, enrich_sources, evidence_sources, headline_only, normalized_url, used_sources, EVIDENCE_RULE, validate_claim_audit)
     from scripts.post_meta import clean_excerpt, derive_excerpt, normalize_headings
 except ModuleNotFoundError:  # 스크립트로 직접 실행될 때
-    from source_evidence import (enrich_sources, evidence_sources, headline_only, used_sources, EVIDENCE_RULE, validate_claim_audit)
+    from source_evidence import (body_urls, enrich_sources, evidence_sources, headline_only, normalized_url, used_sources, EVIDENCE_RULE, validate_claim_audit)
     from post_meta import clean_excerpt, derive_excerpt, normalize_headings
 
 if sys.stdout is not None:
@@ -580,6 +580,14 @@ def over_token_budget() -> bool:
     return used["input"] + used["output"] >= DAILY_TOKEN_BUDGET
 
 
+def _readme_url(source: Optional[dict[str, Any]]) -> str:
+    """수집한 README의 고정 URL(없으면 빈 문자열)."""
+    for evidence in (source or {}).get("evidence", []):
+        if evidence.get("kind") == "official_readme":
+            return evidence["url"]
+    return ""
+
+
 def generate_draft_til(sources: list[dict[str, Any]], pick_rank: int = 0) -> dict[str, Any]:
     # 설명이 부실한 저장소는 근거가 없어 지어내기 쉬우므로, description이 자세한 순으로
     # 정렬한다. pick_rank로 몇 번째로 자세한 항목을 쓸지 고를 수 있다 — 재시도할 때
@@ -617,6 +625,10 @@ def generate_draft_til(sources: list[dict[str, Any]], pick_rank: int = 0) -> dic
         "- 모바일에서 스캔하기 쉽도록, 각 소제목 아래 문단은 2~3문장으로 짧게 끊으세요. "
         "한 소제목 아래 할 말이 많으면 하나의 긴 문단 대신 짧은 문단 여러 개로 나누세요.\n"
         "- 링크는 제공된 저장소 및 evidence URL만 사용하세요.\n"
+        # README 내용을 쓰면서 저장소 URL만 인용해 공식출처 FAIL이 났다(2026-10-23).
+        + (f"- README 내용을 다루는 문단에는 README URL({_readme_url(picked)})을 반드시 인용하세요.\n"
+           if _readme_url(picked) else "")
+        +
         "- 다른 URL은 절대 만들어내지 마세요.\n"
         "- 마지막 줄에 'TITLE: '으로 시작하는 30자 이내의 한국어 제목을 별도로 제시하세요. "
         "무엇을 다루는 글인지 구체적으로 드러내되, 과장이나 낚시성 표현은 쓰지 마세요.\n"
@@ -908,7 +920,8 @@ def fact_check_agent(draft: dict[str, Any], recent_titles: list[str]) -> dict[st
         "그 소재의 내용에 대한 주장은 미지원입니다. "
         "JSON 객체만 반환하세요: "
         '{"all_claims_supported": true, "claims": [{"claim": "초안의 정확한 부분문자열", '
-        '"supported": true, "url": "실제 evidence URL", "quote": "원문의 정확한 연속 발췌"}]}. '
+        '"supported": true, "url": "실제 evidence URL", "quote": "원문의 정확한 연속 발췌", '
+        '"reason": "supported가 false면 원문과 무엇이 다른지 한 줄, true면 빈 문자열"}]}. '
         "누락·모순·미지원 주장이 하나라도 있으면 all_claims_supported=false. "
         "전체 사실을 빠짐없이 검사하고 각 사실의 근거를 반환하세요. "
         "README는 저자의 주장으로만 검증하며 독립 실험을 한 것으로 취급하지 마세요. "
@@ -1230,6 +1243,12 @@ def _generate_valid_draft(content_type: str, sources: list[dict[str, Any]],
 
         if any(s.get("url") for s in draft["sources"]) and not used_sources(draft["body"], draft["sources"]):
             print("[DAILY_POST] 본문 출처 인용 누락, 재시도")
+            continue
+        # 검수 호출에 토큰을 쓰기 전에 코드로 거른다 — README를 쓰고도 README URL을 안 붙이면
+        # 체크리스트가 공식출처 FAIL을 낸다(2026-10-23 실행 1회차).
+        readme = _readme_url(draft.get("picked")) if content_type == "til" else ""
+        if readme and normalized_url(readme) not in body_urls(draft["body"]):
+            print("[DAILY_POST]   README URL 인용 누락, 재시도")
             continue
         # Keep only referenced subjects and their fetched evidence for both reviewers.
         cited = used_sources(draft["body"], draft["sources"])

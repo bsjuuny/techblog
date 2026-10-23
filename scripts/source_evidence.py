@@ -184,6 +184,8 @@ def validate_claim_audit(audit: dict, draft: dict) -> bool:
         for claim in (audit.get("claims") if isinstance(audit, dict) else None) or []:
             if isinstance(claim, dict) and claim.get("supported") is not True:
                 print(f"[DAILY_POST]     미지원: {str(claim.get('claim', ''))[:80]}")
+                if claim.get("reason"):
+                    print(f"[DAILY_POST]     이유: {str(claim['reason'])[:160]}")
         return False
     claims = audit.get("claims")
     if not isinstance(claims, list) or not claims:
@@ -222,6 +224,8 @@ def validate_claim_audit(audit: dict, draft: dict) -> bool:
         if problem:
             snippet = str(claim.get("claim", ""))[:60] if isinstance(claim, dict) else ""
             print(f"[DAILY_POST]   근거 감사 탈락({problem}): {snippet}")
+            if problem == "미지원 판정" and isinstance(claim, dict) and claim.get("reason"):
+                print(f"[DAILY_POST]     이유: {str(claim['reason'])[:160]}")
             if problem in {"원문에 없는 발췌", "수집하지 않은 URL"}:
                 # Without the cited URL and quote the cause can't be told from the log alone.
                 print(f"[DAILY_POST]     인용 URL: {claim.get('url')}")
