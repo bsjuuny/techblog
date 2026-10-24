@@ -173,12 +173,15 @@ def evidence_sources(sources: list[dict]) -> list[dict]:
     return result
 
 
-def validate_claim_audit(audit: dict, draft: dict) -> bool:
+def validate_claim_audit(audit: dict, draft: dict, problems: list | None = None) -> bool:
     """Fail closed on unsupported claims or fabricated quotes, even after checklist PASS.
 
     The model assesses coverage and semantic entailment; code verifies the quoted evidence
     actually exists in a fetched document. This is not a proof of semantic correctness.
+    Rejected claims are appended to ``problems`` ({"claim", "reason"}) so a revision can
+    target exactly those sentences.
     """
+    problems = [] if problems is None else problems
     if not isinstance(audit, dict) or audit.get("all_claims_supported") is not True:
         print("[DAILY_POST]   근거 감사 탈락(감사 모델이 미지원 주장 있음으로 판정)")
         for claim in (audit.get("claims") if isinstance(audit, dict) else None) or []:
@@ -186,6 +189,7 @@ def validate_claim_audit(audit: dict, draft: dict) -> bool:
                 print(f"[DAILY_POST]     미지원: {str(claim.get('claim', ''))[:80]}")
                 if claim.get("reason"):
                     print(f"[DAILY_POST]     이유: {str(claim['reason'])[:160]}")
+                problems.append({"claim": str(claim.get("claim", "")), "reason": str(claim.get("reason", ""))})
         return False
     claims = audit.get("claims")
     if not isinstance(claims, list) or not claims:
@@ -230,6 +234,9 @@ def validate_claim_audit(audit: dict, draft: dict) -> bool:
                 # Without the cited URL and quote the cause can't be told from the log alone.
                 print(f"[DAILY_POST]     인용 URL: {claim.get('url')}")
                 print(f"[DAILY_POST]     발췌: {str(claim.get('quote', ''))[:160]!r}")
+            if isinstance(claim, dict):
+                problems.append({"claim": str(claim.get("claim", "")),
+                                 "reason": str(claim.get("reason") or problem)})
             return False
     return True
 
@@ -274,6 +281,20 @@ def quote_in_document(quote: str, document: str) -> bool:
     for part in parts:
         found = document.find(part, position)
         if found < 0:
-            return False
+            return _metadata_pairs_in_document(quote, document)
         position = found + len(part)
     return True
+
+
+_PAIR_RE = re.compile(r"[\w.-]+: ?\S.*")
+
+
+def _metadata_pairs_in_document(quote: str, document: str) -> bool:
+    """Metadata quoted as separate fields ("language: C, forks: 1226") matches when every
+    "key: value" pair occurs in the document as a whole field (2026-10-25: the fields are not
+    adjacent in the JSON, so the joined quote never matched)."""
+    pairs = [p.strip() for p in _normalize_text(quote).split(",")]
+    if len(pairs) < 2 or not all(_PAIR_RE.fullmatch(p) for p in pairs):
+        return False
+    # A field ends at a comma, a closing brace or the end: "language: C" must not match "language: CSS".
+    return all(re.search(re.escape(p) + r"(?=[,}\n]|$)", document) for p in pairs)

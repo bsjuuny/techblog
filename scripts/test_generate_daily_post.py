@@ -472,6 +472,99 @@ class CostControlTests(unittest.TestCase):
         self.assertIn("남은 시도 중단", out.getvalue())
 
 
+class PromptRuleTests(unittest.TestCase):
+    """Radar 원문 상한·저장소 정보 출처 표기·engineering 지어내기 금지가 프롬프트에 들어가는지."""
+
+    def capture(self, fn, *args, enrich_result=None):
+        with mock.patch.object(daily, "enrich_sources", return_value=enrich_result or []) as enrich, \
+             mock.patch.object(daily, "_claude", return_value="본문\nTITLE: 제목") as claude:
+            fn(*args)
+        return enrich, claude.call_args.args[0]
+
+    def radar_source(self) -> dict:
+        return {"title": "a/b", "url": "https://github.com/a/b", "description": "desc", "language": "Java",
+                "stars": 10, "created_at": "2026-10-01", "pushed_at": "2026-10-20", "stars_per_day": 1,
+                "license": "MIT", "evidence": []}
+
+    def test_radar_uses_short_readme_cap_and_metadata_rule(self) -> None:
+        enrich, prompt = self.capture(daily.generate_draft_github_radar, [self.radar_source()],
+                                      enrich_result=[self.radar_source()])
+        self.assertEqual(enrich.call_args.kwargs["max_chars"], daily.RADAR_README_MAX_CHARS)
+        self.assertLess(daily.RADAR_README_MAX_CHARS, daily.README_MAX_CHARS)
+        self.assertIn("GitHub 저장소 정보 기준", prompt)
+
+    def test_til_has_metadata_rule(self) -> None:
+        source = {**self.radar_source(), "description": "A sufficiently descriptive project"}
+        _, prompt = self.capture(daily.generate_draft_til, [source], enrich_result=[source])
+        self.assertIn("'README에 따르면'으로 쓰지 마세요", prompt)
+
+    def test_engineering_forbids_filling_gaps(self) -> None:
+        commit = {"repo": "today-signal", "title": "fix", "body": "b" * 100, "files_changed": "a.py", "url": ""}
+        with mock.patch.object(daily, "_claude", return_value="본문\nTITLE: 제목") as claude:
+            daily.generate_draft_engineering([commit])
+        prompt = claude.call_args.args[0]
+        self.assertIn("코드 식별자(상태 이름·함수명)", prompt)
+        self.assertIn("커밋에는 나와 있지 않다", prompt)
+
+
+class ReviseStepTests(unittest.TestCase):
+    """검수 실패 시 지적된 문장만 고쳐 쓰고 다시 검수하는 단계. 외부 호출은 가짜로 대신한다."""
+
+    url = "https://example.com/a"
+    PASS = {"팩트": True, "최신성": True, "공식출처": True, "중복충돌": True}
+    QUALITY = {"검색의도": True, "반복제거": True, "제목/CTR": 90, "네이버SEO": 90,
+               "모바일UX": 90, "차별성": 90, "생성형검색": 90}
+
+    def setUp(self) -> None:
+        self.usage_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.usage_dir.cleanup)
+        for patcher in (mock.patch.object(daily, "_USAGE_DIR", Path(self.usage_dir.name)),
+                        mock.patch.object(daily, "print", create=True)):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def draft(self, body: str) -> dict:
+        return {"title": "제목", "summary": "요약", "body": body + " " + self.url,
+                "sources": [{"title": "a", "url": self.url}], "picked": None}
+
+    def run_attempts(self, facts, revised_body="고친 본문"):
+        revise = mock.Mock(return_value=self.draft(revised_body))
+        with mock.patch.multiple(daily, generate_draft_news=lambda _s: self.draft("원래 본문"),
+                                 fact_check_agent=mock.Mock(side_effect=facts), revise_draft=revise,
+                                 quality_check_agent=lambda _d, _c: self.QUALITY, MAX_ATTEMPTS=1):
+            result = daily._generate_valid_draft("news", [], [])
+        return result, revise
+
+    def test_unsupported_claims_are_revised_then_rechecked(self) -> None:
+        problems = [{"claim": "원래 본문", "reason": "원문에 없음"}]
+        failed = {**self.PASS, "팩트": False, "_reason": "원문 근거 감사 실패", "_problems": problems}
+        result, revise = self.run_attempts([failed, self.PASS])
+        self.assertEqual(revise.call_args.args[1], problems)
+        self.assertIn("고친 본문", result["body"])
+
+    def test_revised_draft_that_still_fails_is_not_published(self) -> None:
+        failed = {**self.PASS, "팩트": False, "_reason": "지어낸 수치", "_problems": []}
+        result, revise = self.run_attempts([failed, failed])
+        self.assertIsNone(result)
+        self.assertEqual(revise.call_args.args[1], [{"claim": "", "reason": "지어낸 수치"}])
+
+    def test_topic_duplication_is_not_revised(self) -> None:
+        duplicate = {**self.PASS, "중복충돌": False, "_reason": "최근 글과 주제 동일"}
+        result, revise = self.run_attempts([duplicate])
+        self.assertIsNone(result)
+        revise.assert_not_called()
+
+    def test_revise_prompt_lists_problems_and_forbids_new_facts(self) -> None:
+        draft = self.draft("원래 본문")
+        with mock.patch.object(daily, "_claude", return_value="고친 본문 " + self.url) as claude:
+            revised = daily.revise_draft(draft, [{"claim": "원래 본문", "reason": "원문에 없음"}])
+        prompt = claude.call_args.args[0]
+        self.assertIn("지적: 원문에 없음", prompt)
+        self.assertIn("새로운 사실·수치·이름·링크를 추가하지 마세요", prompt)
+        self.assertEqual(revised["title"], "제목")  # TITLE 줄이 없으면 원래 제목 유지
+        self.assertIn("고친 본문", revised["body"])
+
+
 class FactCheckAuditTests(unittest.TestCase):
     """근거 감사 호출의 토큰 한도와 잘린 응답 처리. Claude 호출은 가짜 응답으로 대신한다."""
 

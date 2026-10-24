@@ -143,6 +143,27 @@ class SourceEvidenceTests(unittest.TestCase):
         logged = "\n".join(str(c.args[0]) for c in daily.print.call_args_list)
         self.assertIn("README URL 인용 누락", logged)
 
+    def test_separately_quoted_metadata_fields_match_whole_fields_only(self):
+        doc = json.dumps({"title": "a/b", "language": "C", "stars": 4438, "forks": 1226,
+                          "description": "CSS tool"})
+        self.assertTrue(evidence.quote_in_document("language: C, forks: 1226", doc))
+        self.assertTrue(evidence.quote_in_document('"language": "C", "forks": 1226', doc))
+        self.assertFalse(evidence.quote_in_document("language: CSS, forks: 1226", doc))
+        self.assertFalse(evidence.quote_in_document("language: C, forks: 122", doc))
+        self.assertFalse(evidence.quote_in_document("language: C, license: MIT", doc))
+
+    def test_rejected_claims_are_collected_for_revision(self):
+        problems = []
+        audit = {"all_claims_supported": False, "claims": [
+            {"claim": "모델 크기는 740M입니다.", "supported": False, "reason": "원문과 다름"}]}
+        self.assertFalse(evidence.validate_claim_audit(audit, self.draft(), problems))
+        self.assertEqual(problems, [{"claim": "모델 크기는 740M입니다.", "reason": "원문과 다름"}])
+        problems = []
+        audit = self.audit()
+        audit["claims"][0]["quote"] = "The model has 7B parameters."
+        self.assertFalse(evidence.validate_claim_audit(audit, self.draft(), problems))
+        self.assertEqual(problems, [{"claim": "모델 크기는 740M입니다.", "reason": "원문에 없는 발췌"}])
+
     def test_quote_failure_logs_cited_url_and_quote(self):
         audit = self.audit()
         audit["claims"][0]["quote"] = "The model has 7B parameters."

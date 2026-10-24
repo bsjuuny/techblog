@@ -83,6 +83,9 @@ DRAFT_MAX_TOKENS = 12000
 # 원문 길이 상한. 10-17부터 원문을 소스당 4만 자까지 프롬프트에 넣으면서 하루 사용량이 이전의
 # 5~10배가 됐다(Console 일별 그래프). 근거 감사도 같은 잘린 원문으로 대조하므로 정합성은 유지된다.
 README_MAX_CHARS = 20_000
+# Radar는 저장소 여러 개를 3~4문장씩 소개하므로 README 앞부분이면 충분하다. 2만 자씩 넣으면
+# 시도 1회가 약 14.6만 토큰이라 하루 상한을 혼자 다 썼다(2026-10-24).
+RADAR_README_MAX_CHARS = 4_000
 NEWS_ARTICLE_MAX_CHARS = 12_000
 # news는 HN 상위 8건 중 점수 상위 몇 건만 원문을 붙이고, 나머지는 제목·링크만 준다.
 NEWS_FETCH_TOP = 5
@@ -580,6 +583,13 @@ def over_token_budget() -> bool:
     return used["input"] + used["output"] >= DAILY_TOKEN_BUDGET
 
 
+# 저장소 정보를 README 출처로 잘못 달아 근거 감사에서 탈락했다(2026-10-24 Radar).
+METADATA_ATTRIBUTION_RULE = (
+    "- 언어·stars·forks·생성일은 GitHub 저장소 정보(API)이지 README 내용이 아닙니다. "
+    "'GitHub 저장소 정보 기준'으로 쓰고 'README에 따르면'으로 쓰지 마세요.\n"
+)
+
+
 def _readme_url(source: Optional[dict[str, Any]]) -> str:
     """수집한 README의 고정 URL(없으면 빈 문자열)."""
     for evidence in (source or {}).get("evidence", []):
@@ -611,6 +621,7 @@ def generate_draft_til(sources: list[dict[str, Any]], pick_rank: int = 0) -> dic
         f"{_style_block('til')}"
         "규칙 (반드시 지킬 것):\n"
         "- 실제 설명과 함께 제공된 공식 README의 내용만 사실로 다루세요.\n"
+        + METADATA_ATTRIBUTION_RULE +
         "- 버전 번호, 출시일, 구체적 기능 목록처럼 위에 없는 세부사항은 절대 지어내지 마세요.\n"
         # 예전엔 위 소개문에 '최근 14일 내 생성'이라고 써서 모델이 '공개 14일 만에'로 옮겨
         # 적었고, 실제 경과일과 달라 팩트 검증에서 계속 탈락했다(2026-10-22·23).
@@ -642,7 +653,7 @@ def generate_draft_til(sources: list[dict[str, Any]], pick_rank: int = 0) -> dic
 
 
 def generate_draft_github_radar(sources: list[dict[str, Any]]) -> dict[str, Any]:
-    sources = enrich_sources(sources, max_chars=README_MAX_CHARS)
+    sources = enrich_sources(sources, max_chars=RADAR_README_MAX_CHARS)
     source_block = "\n".join(
         (
             f"- {source['title']} | 설명: {source['description']} | 언어: "
@@ -663,6 +674,7 @@ def generate_draft_github_radar(sources: list[dict[str, Any]]) -> dict[str, Any]
         "규칙 (반드시 지킬 것):\n"
         "- 목록의 모든 저장소를 하나씩 다루고, 저장소 이름을 각 항목의 ## 소제목에 넣으세요.\n"
         "- description, API 통계와 실제로 제공된 README만 사실 근거로 쓰세요. 없는 기능·성능은 추정하지 마세요.\n"
+        + METADATA_ATTRIBUTION_RULE +
         "- '생성 후 일평균 stars'는 현재 총 stars를 생성 일수로 나눈 근사치일 뿐, 실제 일별 "
         "증가량이나 GitHub 공식 트렌딩 점수가 아니라는 점을 도입부에서 짧게 밝히세요.\n"
         "- 각 항목은 무엇을 표방하는 프로젝트인지, 어떤 개발자가 살펴볼 만한지, 도입 전에 "
@@ -798,6 +810,10 @@ def generate_draft_engineering(commits: list[dict[str, Any]], pick_rank: int = 0
         "에러 메시지, 원인처럼 위에 없는 세부사항은 절대 지어내지 마세요.\n"
         f"- 저장소 이름({picked['repo']})과 커밋 내용만으로 알 수 있는 범위에서만 서술하고, "
         "비즈니스 맥락이나 회사명처럼 커밋에 없는 정보는 지어내지 마세요.\n"
+        # 원인 추적 과정·상태 이름·이유·테스트 케이스를 지어내 3번 모두 탈락했다(2026-10-25).
+        "- 커밋 메시지·변경 파일·제공 문서에 없는 원인 추적 과정, 코드 식별자(상태 이름·함수명), "
+        "변경 이유, 테스트 케이스 내용은 쓰지 마세요. 커밋에 나오지 않는 부분은 '커밋에는 나와 있지 "
+        "않다'고 쓰세요. 이야기를 매끄럽게 만들려고 빈칸을 채우지 마세요.\n"
         "- '어떤 문제가 있었는지 → 어떻게 원인을 찾았는지 → 어떻게 고쳤는지' 흐름으로 "
         "구체적으로 쓰되, 커밋 메시지에 이미 있는 근거를 재구성하는 것이지 새로운 서사를 "
         "지어내는 게 아닙니다.\n"
@@ -930,9 +946,10 @@ def fact_check_agent(draft: dict[str, Any], recent_titles: list[str]) -> dict[st
         # picked·review_context는 sources와 같은 원문을 한 번 더 담고 있어 감사에는 넣지 않는다.
         + json.dumps({k: draft.get(k) for k in ("title", "summary", "body", "sources")}, ensure_ascii=False)
     )
+    problems: list[dict[str, str]] = []
     try:
         audit = _parse_json_object(_claude(audit_prompt, effort="medium", max_tokens=AUDIT_MAX_TOKENS))
-        grounded = validate_claim_audit(audit, draft)
+        grounded = validate_claim_audit(audit, draft, problems)
     except (ValueError, TypeError, KeyError) as e:
         print(f"[DAILY_POST]   근거 감사 응답 처리 실패: {type(e).__name__}: {e}")
         grounded = False
@@ -940,7 +957,33 @@ def fact_check_agent(draft: dict[str, Any], recent_titles: list[str]) -> dict[st
     if not grounded:
         result["팩트"] = False
         result["_reason"] = "원문 근거 감사 실패 (미지원 주장·부정확한 발췌·응답 형식 확인)"
+        result["_problems"] = problems
     return result
+
+
+def revise_draft(draft: dict[str, Any], problems: list[dict[str, str]]) -> Optional[dict[str, Any]]:
+    """검수가 지적한 문장만 고치게 한다. 새 사실은 넣지 못하게 하고, 결과는 다시 검수를 받는다.
+
+    예전엔 문장 몇 개가 틀려도 초안을 버리고 처음부터 다시 써서, 매 시도가 새로운 지어내기를
+    낳고 토큰도 매번 다시 들었다(2026-10-19~25 발행 0건).
+    """
+    listed = "\n".join(f"- 문장: {p['claim'] or '(특정 문장 없음)'}\n  지적: {p['reason']}" for p in problems)
+    prompt = (
+        "아래 기술 블로그 초안에서 검수자가 원문으로 뒷받침되지 않는다고 지적한 부분만 고치세요.\n"
+        "- 지적된 문장은 원문 근거 범위로 표현을 좁히거나, 출처를 바르게 달거나, 삭제하세요.\n"
+        "- 새로운 사실·수치·이름·링크를 추가하지 마세요. 지적되지 않은 부분은 그대로 두세요.\n"
+        "- 출력은 수정된 본문 전체, 그다음 줄에 'TITLE: 제목', 그다음 줄에 'SUMMARY: 요약' 형식입니다. "
+        "제목·요약에 지적된 내용이 없으면 그대로 쓰세요.\n\n"
+        f"=== 지적 사항 ===\n{listed}\n\n"
+        f"=== 제목 ===\n{draft['title']}\n\n=== 요약 ===\n{draft.get('summary', '')}\n\n"
+        f"=== 본문 ===\n{draft['body']}\n"
+    )
+    text = _claude(prompt, effort="medium")
+    title, summary, body = _split_meta(text)
+    if not body:
+        return None
+    return {**draft, "title": title if "TITLE:" in text else draft["title"],
+            "summary": summary or draft.get("summary", ""), "body": body}
 
 
 def _parse_json_object(text: str) -> Any:
@@ -1198,6 +1241,58 @@ def commit_and_push(path: Path) -> None:
 MAX_ATTEMPTS = 3
 
 
+def _fact_pass(result: dict[str, Any]) -> bool:
+    return all(result[k] for k in ("팩트", "최신성", "공식출처", "중복충돌"))
+
+
+def _code_check_problem(draft: dict[str, Any], content_type: str) -> str:
+    """검수 호출 전에 코드로 거르는 결함. 문제가 없으면 빈 문자열."""
+    # Research adds only URLs actually fetched. Never allow all candidate URLs for TIL.
+    allowed_urls = {s["url"] for s in draft["sources"] if s.get("url")}
+    ok, invented = validate_links("\n".join(draft.get(k, "") for k in ("title", "summary", "body")), allowed_urls)
+    if not ok:
+        return f"링크 검증 실패(지어낸 링크로 판단): {invented}"
+    stray_hanja = find_stray_hanja(draft["body"])
+    if stray_hanja:
+        return f"한자 오염 감지: {stray_hanja}"
+    broken_words = find_broken_mixed_words(draft["body"])
+    if broken_words:
+        return f"단어 중간 언어 혼입 감지: {broken_words}"
+    if any(s.get("url") for s in draft["sources"]) and not used_sources(draft["body"], draft["sources"]):
+        return "본문 출처 인용 누락"
+    # README를 쓰고도 README URL을 안 붙이면 체크리스트가 공식출처 FAIL을 낸다(2026-10-23 실행 1회차).
+    readme = _readme_url(draft.get("picked")) if content_type == "til" else ""
+    if readme and normalized_url(readme) not in body_urls(draft["body"]):
+        return "README URL 인용 누락"
+    return ""
+
+
+def _revise_and_recheck(draft: dict[str, Any], fact_result: dict[str, Any], content_type: str,
+                        recent_titles: list[str]) -> Optional[tuple[dict[str, Any], dict[str, Any]]]:
+    """지적된 문장만 한 번 고쳐 쓰고 다시 검수한다. 고칠 수 없는 실패면 None."""
+    if not fact_result["중복충돌"]:
+        return None  # 주제가 최근 글과 겹치는 건 문장을 고쳐서 해결되지 않는다
+    problems = fact_result.get("_problems") or (
+        [{"claim": "", "reason": fact_result["_reason"]}] if fact_result.get("_reason") else [])
+    if not problems or over_token_budget():
+        return None
+    print(f"[DAILY_POST]   지적된 {len(problems)}건만 고쳐 쓰기")
+    try:
+        revised = revise_draft(draft, problems)
+    except Exception as e:
+        print(f"[DAILY_POST]   고쳐 쓰기 호출 실패: {e}")
+        return None
+    if revised is None:
+        return None
+    problem = _code_check_problem(revised, content_type)
+    if problem:
+        print(f"[DAILY_POST]   고쳐 쓴 초안 {problem}")
+        return None
+    result = fact_check_agent(revised, recent_titles)
+    print(f"[DAILY_POST]   고쳐 쓴 초안 팩트 검증: {result}")
+    return revised, result
+
+
 def _generate_valid_draft(content_type: str, sources: list[dict[str, Any]],
                            recent_titles: list[str]) -> Optional[dict[str, Any]]:
     """생성 -> 검증을 최대 MAX_ATTEMPTS번 시도한다. 모델이 가끔 한자를 섞어 쓰거나
@@ -1224,31 +1319,9 @@ def _generate_valid_draft(content_type: str, sources: list[dict[str, Any]],
             print(f"[DAILY_POST]   생성 호출 실패(타임아웃 등), 재시도: {e}")
             continue
 
-        # Research adds only URLs actually fetched. Never allow all candidate URLs for TIL.
-        allowed_urls = {s["url"] for s in draft["sources"] if s.get("url")}
-        ok, invented = validate_links("\n".join(draft.get(k, "") for k in ("title", "summary", "body")), allowed_urls)
-        if not ok:
-            print(f"[DAILY_POST]   링크 검증 실패(지어낸 링크로 판단), 재시도: {invented}")
-            continue
-
-        stray_hanja = find_stray_hanja(draft["body"])
-        if stray_hanja:
-            print(f"[DAILY_POST]   한자 오염 감지, 재시도: {stray_hanja}")
-            continue
-
-        broken_words = find_broken_mixed_words(draft["body"])
-        if broken_words:
-            print(f"[DAILY_POST]   단어 중간 언어 혼입 감지, 재시도: {broken_words}")
-            continue
-
-        if any(s.get("url") for s in draft["sources"]) and not used_sources(draft["body"], draft["sources"]):
-            print("[DAILY_POST] 본문 출처 인용 누락, 재시도")
-            continue
-        # 검수 호출에 토큰을 쓰기 전에 코드로 거른다 — README를 쓰고도 README URL을 안 붙이면
-        # 체크리스트가 공식출처 FAIL을 낸다(2026-10-23 실행 1회차).
-        readme = _readme_url(draft.get("picked")) if content_type == "til" else ""
-        if readme and normalized_url(readme) not in body_urls(draft["body"]):
-            print("[DAILY_POST]   README URL 인용 누락, 재시도")
+        problem = _code_check_problem(draft, content_type)
+        if problem:
+            print(f"[DAILY_POST]   {problem}, 재시도")
             continue
         # Keep only referenced subjects and their fetched evidence for both reviewers.
         cited = used_sources(draft["body"], draft["sources"])
@@ -1259,11 +1332,17 @@ def _generate_valid_draft(content_type: str, sources: list[dict[str, Any]],
             e["url"] in cited_urls for e in s.get("evidence", []))]
         draft["sources"] = subjects
         fact_result = fact_check_agent(draft, recent_titles)
-        fact_pass = all(fact_result[k] for k in ("팩트", "최신성", "공식출처", "중복충돌"))
         print(f"[DAILY_POST]   팩트 검증: {fact_result}")
-        if not fact_pass:
-            print(f"[DAILY_POST]   팩트 검증 실패, 재시도: {fact_result.get('_reason')}")
-            continue
+        if not _fact_pass(fact_result):
+            print(f"[DAILY_POST]   팩트 검증 실패: {fact_result.get('_reason')}")
+            revised = _revise_and_recheck(draft, fact_result, content_type, recent_titles)
+            if revised is None:
+                print("[DAILY_POST]   재시도")
+                continue
+            draft, fact_result = revised
+            if not _fact_pass(fact_result):
+                print(f"[DAILY_POST]   고쳐 쓴 초안도 팩트 검증 실패, 재시도: {fact_result.get('_reason')}")
+                continue
 
         quality_result = quality_check_agent(draft, content_type)
         quality_pass = (
