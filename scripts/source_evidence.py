@@ -221,7 +221,10 @@ def validate_claim_audit(audit: dict, draft: dict, problems: list | None = None)
     # Engineering evidence is the fetched local git record, not an external article.
     for source in draft["sources"]:
         if source.get("sha") and source.get("body"):
-            documents[source.get("url") or "local:" + source["sha"]] = source["title"] + "\n" + source["body"]
+            # The writer also sees the changed-file list; quotes from it failed when it was
+            # missing here (2026-10-25).
+            documents[source.get("url") or "local:" + source["sha"]] = "\n".join(
+                [source["title"], source["body"], source.get("files_changed") or ""])
     text = "\n".join(draft.get(k, "") for k in ("title", "summary", "body"))
     for claim in claims:
         problem = _claim_problem(claim, text, documents)
@@ -247,7 +250,9 @@ def _claim_problem(claim, text: str, documents: dict[str, str]) -> str:
     statement, quote, url = (claim.get(k) for k in ("claim", "quote", "url"))
     if not all(isinstance(v, str) and v.strip() for v in (statement, quote, url)):
         return "필드 누락"
-    if statement not in text:
+    # The auditor copies draft sentences with the same small differences as quotes (dropped
+    # backticks etc.); a revised draft failed on that alone (2026-10-25).
+    if _normalize_text(statement) not in _normalize_text(text):
         return "초안에 없는 주장"
     if url not in documents:
         return "수집하지 않은 URL"
@@ -261,11 +266,17 @@ _TYPOGRAPHY = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201
 MIN_ELIDED_PART = 12
 
 
+_MD_LINK = re.compile(r"!?\[([^\]\n]*)\]\([^)\n]*\)")
+
+
 def _normalize_text(text: str) -> str:
     # HTML text extraction joins inline tags with newlines ("<code>x</code>." -> "x\n."),
     # so whitespace before punctuation is not meaningful.
     # Markdown backticks are added by the auditor when it copies the draft's style, and
     # metadata is quoted with or without JSON's double quotes ("stars": 3572 vs stars: 3572).
+    # README markdown is quoted as rendered text: links keep their text, emphasis marks go
+    # ("[HarmonyOS](#harmonyos)" vs "HarmonyOS", "**Android version**", 2026-10-25).
+    text = _MD_LINK.sub(r"\1", text).replace("*", "")
     text = " ".join(text.translate(_TYPOGRAPHY).replace("`", "").replace('"', "").split())
     return re.sub(r" (?=[.,;:!?)\]])", "", text)
 

@@ -598,6 +598,11 @@ class FactCheckAuditTests(unittest.TestCase):
         _, calls, _ = self.run_fact_check('{"all_claims_supported": false}', "end_turn")
         self.assertGreaterEqual(calls[1]["max_tokens"], 12000)
 
+    def test_checklist_accepts_unlinked_private_commits(self) -> None:
+        _, calls, _ = self.run_fact_check('{"all_claims_supported": false}', "end_turn")
+        checklist = calls[0]["messages"][0]["content"]
+        self.assertIn("링크가 없다는 이유로 FAIL하지 마세요", checklist)
+
     def test_audit_scope_matches_checklist_background_rule(self) -> None:
         # 체크리스트가 허용하는 일반 배경 지식을 감사만 실패로 보면 til/news가 통과할 수 없다.
         _, calls, _ = self.run_fact_check('{"all_claims_supported": false}', "end_turn")

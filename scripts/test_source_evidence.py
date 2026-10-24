@@ -146,6 +146,33 @@ class SourceEvidenceTests(unittest.TestCase):
         logged = "\n".join(str(c.args[0]) for c in daily.print.call_args_list)
         self.assertIn("README URL 인용 누락", logged)
 
+    def test_claim_copied_without_backticks_still_matches_draft(self):
+        draft = {**self.draft(), "body": "`region_consistent`는 지역 단위 판정입니다. " + self.readme}
+        audit = {"all_claims_supported": True, "claims": [
+            {"claim": "region_consistent는 지역 단위 판정입니다", "supported": True,
+             "url": self.readme, "quote": "The model has 740M parameters."}]}
+        self.assertTrue(evidence.validate_claim_audit(audit, draft))
+        audit["claims"][0]["claim"] = "region_consistent는 건물 단위 검증입니다"
+        self.assertFalse(evidence.validate_claim_audit(audit, draft))
+
+    def test_local_commit_document_includes_changed_files(self):
+        sha = "30cd385f514e9bf4a517880df777331d2d160a3a"
+        commit = {"title": "feat: updater", "body": "Add signed update storage.", "sha": sha, "url": "",
+                  "files_changed": " src/update/capacitorStorage.ts |  55 ++++++\n src/update/storage.ts | 40 ++++"}
+        draft = {"title": "개발기", "summary": "", "body": "저장소 계층을 두 파일로 나눴다.",
+                 "sources": [commit], "picked": commit}
+        audit = {"all_claims_supported": True, "claims": [
+            {"claim": "저장소 계층을 두 파일로 나눴다", "supported": True, "url": "local:" + sha,
+             "quote": "src/update/capacitorStorage.ts | 55 ++++++ src/update/storage.ts"}]}
+        self.assertTrue(evidence.validate_claim_audit(audit, draft))
+
+    def test_readme_markdown_is_compared_as_rendered_text(self):
+        doc = '**Since v2.0 there is an Android version** (community port); see [HarmonyOS](#harmonyos).'
+        self.assertTrue(evidence.quote_in_document(
+            "Since v2.0 there is an Android version (community port); see HarmonyOS.", doc))
+        self.assertTrue(evidence.quote_in_document("**Since v2.0 there is an Android version**", doc))
+        self.assertFalse(evidence.quote_in_document("Since v2.0 there is an iOS version", doc))
+
     def test_separately_quoted_metadata_fields_match_whole_fields_only(self):
         doc = json.dumps({"title": "a/b", "language": "C", "stars": 4438, "forks": 1226,
                           "description": "CSS tool"})
