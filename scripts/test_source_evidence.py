@@ -173,6 +173,22 @@ class SourceEvidenceTests(unittest.TestCase):
         self.assertTrue(evidence.quote_in_document("**Since v2.0 there is an Android version**", doc))
         self.assertFalse(evidence.quote_in_document("Since v2.0 there is an iOS version", doc))
 
+    def test_readme_text_can_be_cited_via_repository_url(self):
+        draft = {**self.draft(), "body": "모델 크기는 740M입니다. " + self.repo}
+        audit = {"all_claims_supported": True, "claims": [
+            {"claim": "모델 크기는 740M입니다.", "supported": True, "url": self.repo,
+             "quote": "The model has 740M parameters."}]}
+        self.assertTrue(evidence.validate_claim_audit(audit, draft))
+        audit["claims"][0]["quote"] = "The model has 7B parameters."
+        self.assertFalse(evidence.validate_claim_audit(audit, draft))
+
+    def test_metadata_fields_elided_out_of_json_order(self):
+        doc = json.dumps({"title": "a/b", "stars": 31500, "language": "Java",
+                          "created_at": "2026-10-17T08:12:35Z", "license": "NOASSERTION"})
+        quote = 'language": "Java", ... created_at": "2026-10-17T08:12:35Z" ... stars": 31500 ... license": "NOASSERTION"'
+        self.assertTrue(evidence.quote_in_document(quote, doc))
+        self.assertFalse(evidence.quote_in_document(quote.replace("31500", "3150"), doc))
+
     def test_separately_quoted_metadata_fields_match_whole_fields_only(self):
         doc = json.dumps({"title": "a/b", "language": "C", "stars": 4438, "forks": 1226,
                           "description": "CSS tool"})
@@ -245,9 +261,10 @@ class SourceEvidenceTests(unittest.TestCase):
         self.assertTrue(evidence.quote_in_document(
             "We strongly recommend that you roll … leaves out the cook folder", doc))
 
-    def test_elided_quote_rejects_reordered_short_or_invented_parts(self):
+    def test_elided_quote_accepts_any_order_but_rejects_short_or_invented_parts(self):
         doc = "We strongly recommend that you roll all variables. The sdist leaves out the cook folder."
-        self.assertFalse(evidence.quote_in_document(
+        # README bullets were quoted out of order (2026-10-25 Radar); each part is still literal.
+        self.assertTrue(evidence.quote_in_document(
             "leaves out the cook folder ... We strongly recommend that", doc))
         self.assertFalse(evidence.quote_in_document("We ... folder", doc))
         self.assertFalse(evidence.quote_in_document(

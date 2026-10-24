@@ -210,11 +210,13 @@ def validate_claim_audit(audit: dict, draft: dict, problems: list | None = None)
                 ensure_ascii=False,
             )
             add_document(source["url"], metadata)
-            # A README has its own URL, and the auditor may cite it for the repository's stars
-            # or creation date; both documents belong to the same source (2026-10-23).
-            for evidence in source["evidence"]:
-                if evidence["url"] != source["url"]:
-                    add_document(evidence["url"], metadata)
+            # The repository URL and its README URL are one source: the auditor cites either for
+            # README text or metadata (2026-10-23 stars via README URL, 2026-10-25 README text via
+            # repository URL), so both resolve to the same combined document.
+            urls = list(dict.fromkeys([source["url"]] + [e["url"] for e in source["evidence"]]))
+            combined = "\n".join(documents[u] for u in urls if u in documents)
+            for url in urls:
+                documents[url] = combined
         elif "evidence" in source:
             # Fetch failed: the post may link it by headline, but nothing about its content.
             add_document(source["url"], json.dumps(headline_only(source), ensure_ascii=False))
@@ -282,19 +284,20 @@ def _normalize_text(text: str) -> str:
 
 
 def quote_in_document(quote: str, document: str) -> bool:
-    """The quote, or every part of an elided quote ("A ... B"), occurs in order in the document."""
+    """The quote, or every part of an elided quote ("A ... B"), occurs in the document.
+
+    Parts may come in any order: the auditor joins bullet points or metadata fields in its own
+    order (2026-10-25 Radar: two README bullets and JSON fields quoted out of order). Each part
+    must still be literal text of at least MIN_ELIDED_PART characters.
+    """
     document = _normalize_text(document)
+    if _metadata_pairs_in_document(quote, document):
+        return True
     parts = [p.strip() for p in re.split(r"\.{3}|\u2026", _normalize_text(quote))]
     parts = [p for p in parts if p]
     if not parts or (len(parts) > 1 and any(len(p) < MIN_ELIDED_PART for p in parts)):
         return False
-    position = 0
-    for part in parts:
-        found = document.find(part, position)
-        if found < 0:
-            return _metadata_pairs_in_document(quote, document)
-        position = found + len(part)
-    return True
+    return all(part in document for part in parts)
 
 
 _PAIR_RE = re.compile(r"[\w.-]+: ?\S.*")
@@ -304,7 +307,8 @@ def _metadata_pairs_in_document(quote: str, document: str) -> bool:
     """Metadata quoted as separate fields ("language: C, forks: 1226") matches when every
     "key: value" pair occurs in the document as a whole field (2026-10-25: the fields are not
     adjacent in the JSON, so the joined quote never matched)."""
-    pairs = [p.strip() for p in _normalize_text(quote).split(",")]
+    pairs = [p.strip(" ,") for p in re.split(r"\.{3}|…|,", _normalize_text(quote))]
+    pairs = [p for p in pairs if p]
     if len(pairs) < 2 or not all(_PAIR_RE.fullmatch(p) for p in pairs):
         return False
     # A field ends at a comma, a closing brace or the end: "language: C" must not match "language: CSS".
