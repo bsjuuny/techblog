@@ -91,7 +91,7 @@ NEWS_ARTICLE_MAX_CHARS = 12_000
 NEWS_FETCH_TOP = 5
 # 하루 토큰 상한(입력+출력). 넘으면 남은 시도를 멈추고 그날은 건너뛴다 — 검증이 계속 실패하는
 # 날 비싼 경로를 끝까지 타지 않게 하는 안전장치. 줄인 뒤 예상치는 하루 7만~10만.
-DAILY_TOKEN_BUDGET = int(os.getenv("DAILY_TOKEN_BUDGET", "150000"))
+DAILY_TOKEN_BUDGET = int(os.getenv("DAILY_TOKEN_BUDGET") or "150000")
 # 하루 누계는 커밋되지 않는 .git 안에 둔다(daily-post.lock 과 같은 자리). 같은 날 재실행도 합산된다.
 _USAGE_DIR = REPO_ROOT / ".git"
 

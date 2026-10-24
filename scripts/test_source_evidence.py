@@ -20,6 +20,9 @@ _usage_dir = tempfile.TemporaryDirectory()
 def setUpModule() -> None:
     # Token tallies must never land in the real repo's .git (tonight's run would add to them).
     daily._USAGE_DIR = Path(_usage_dir.name)
+    # Fake usage accumulates across tests and the env may set a budget; tests that exercise the
+    # budget patch it themselves.
+    daily.DAILY_TOKEN_BUDGET = 10**12
 
 
 def tearDownModule() -> None:

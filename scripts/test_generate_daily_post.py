@@ -23,6 +23,9 @@ _usage_dir = tempfile.TemporaryDirectory()
 def setUpModule() -> None:
     # Token tallies must never land in the real repo's .git (tonight's run would add to them).
     daily._USAGE_DIR = Path(_usage_dir.name)
+    # Fake usage accumulates across tests and the env may set a budget; tests that exercise the
+    # budget patch it themselves.
+    daily.DAILY_TOKEN_BUDGET = 10**12
 
 
 def tearDownModule() -> None:
@@ -458,8 +461,10 @@ class CostControlTests(unittest.TestCase):
         daily._usage_path().write_text(json.dumps({"input": 140_000, "output": 20_000, "calls": 9}),
                                        encoding="utf-8")
         out = io.StringIO()
+        # 상한은 환경변수로 바뀔 수 있다 — 고정하지 않으면 DAILY_TOKEN_BUDGET 을 준 실행에서 이 테스트가
+        # 실패해 런처가 생성을 시작하지 못한다(2026-10-25 수동 실행).
         with tempfile.TemporaryDirectory() as status_dir, mock.patch.multiple(
-            daily, _STATUS_DIR=Path(status_dir), get_recent_titles=lambda *a, **k: [],
+            daily, _STATUS_DIR=Path(status_dir), get_recent_titles=lambda *a, **k: [], DAILY_TOKEN_BUDGET=150_000,
             fetch_github_trending=lambda: [self.picked()], fetch_hackernews_top=lambda: [self.picked()],
             generate_draft_til=mock.Mock(side_effect=AssertionError("must not generate")),
             generate_draft_news=mock.Mock(side_effect=AssertionError("must not generate")),
