@@ -279,6 +279,14 @@ class RunRetryAndFallbackTests(unittest.TestCase):
         )
         self.assertEqual(marker["fallbackFrom"], "github_radar(소재 수집 실패: rate limit)")
 
+    def test_engineering_gets_one_attempt_then_falls_back(self) -> None:
+        commits = [{"repo": "r", "title": "t", "body": "b" * 100, "files_changed": "", "url": ""}]
+        marker, _, out = self.run_day(self.sunday, commits=commits,
+                                      facts=[self.FAIL_FACT, self.PASS_FACT])
+        self.assertEqual(marker["fallbackFrom"], "engineering(검증 실패(1회 시도))")
+        self.assertTrue(marker["published"])
+        self.assertIn("생성 시도 1/1", out)
+
     def test_engineering_without_commits_falls_back(self) -> None:
         marker, _, _ = self.run_day(self.sunday, commits=[], facts=[self.PASS_FACT])
         self.assertEqual(marker["fallbackFrom"], "engineering(이번 주 커밋 소재 없음)")
@@ -502,6 +510,19 @@ class PromptRuleTests(unittest.TestCase):
         source = {**self.radar_source(), "description": "A sufficiently descriptive project"}
         _, prompt = self.capture(daily.generate_draft_til, [source], enrich_result=[source])
         self.assertIn("'README에 따르면'으로 쓰지 마세요", prompt)
+
+    def test_til_and_engineering_are_short_and_summary_first(self) -> None:
+        source = {**self.radar_source(), "description": "A sufficiently descriptive project"}
+        _, til = self.capture(daily.generate_draft_til, [source], enrich_result=[source])
+        self.assertIn("900~1300자", til)
+        self.assertIn("README에 있는 사실을 먼저 요약", til)
+        self.assertNotIn("1600~2200자", til)
+        commit = {"repo": "today-signal", "title": "fix", "body": "b" * 100, "files_changed": "a.py", "url": ""}
+        with mock.patch.object(daily, "_claude", return_value="본문\nTITLE: 제목") as claude:
+            daily.generate_draft_engineering([commit])
+        engineering = claude.call_args.args[0]
+        self.assertIn("700~1000자", engineering)
+        self.assertNotIn("어떻게 원인을 찾았는지 → 어떻게 고쳤는지", engineering)
 
     def test_engineering_forbids_filling_gaps(self) -> None:
         commit = {"repo": "today-signal", "title": "fix", "body": "b" * 100, "files_changed": "a.py", "url": ""}

@@ -627,12 +627,11 @@ def generate_draft_til(sources: list[dict[str, Any]], pick_rank: int = 0) -> dic
         # 적었고, 실제 경과일과 달라 팩트 검증에서 계속 탈락했다(2026-10-22·23).
         "- 'N일 만에', '2주 만에' 같은 경과 기간은 쓰지 말고, 필요하면 created_at 날짜를 그대로 "
         "쓰세요(예: '2026-10-12에 공개된'). 별 개수도 제공된 stars 값 그대로만 쓰세요.\n"
-        "- 대신 이 도구가 속한 기술 분야에 대한 개념 설명, 왜 이런 도구가 필요한지, 기존 "
-        "방식과 비교했을 때 무엇이 다른지, 실무에서 도입할 때 고려할 점, 어떤 상황에 특히 "
-        "유용한지처럼 여러 각도에서 풀어서 다루세요. 같은 말을 다른 문장으로 반복하지 말고 "
-        "매 문단이 새로운 관점을 더하도록 하세요.\n"
-        "- 마크다운 소제목(##)을 4~5개 사용하고, 1600~2200자 분량으로 충분히 자세하게 "
-        "작성하세요.\n"
+        # 길게 쓰라고 하면 빈칸을 원문에 없는 세부로 채워 근거 감사에서 매번 탈락했다
+        # (2026-10-19~25 발행 0건). 짧게, README 사실 요약을 먼저 쓰게 한다.
+        "- 각 소제목은 README에 있는 사실을 먼저 요약하고, 그 뒤에 이 분야의 일반적인 배경이나 "
+        "도입 시 확인할 점을 1~2문장만 덧붙이세요. README에 없는 기능·수치·이유는 쓰지 마세요.\n"
+        "- 마크다운 소제목(##)을 3개 사용하고, 900~1300자 분량으로 간결하게 작성하세요.\n"
         "- 모바일에서 스캔하기 쉽도록, 각 소제목 아래 문단은 2~3문장으로 짧게 끊으세요. "
         "한 소제목 아래 할 말이 많으면 하나의 긴 문단 대신 짧은 문단 여러 개로 나누세요.\n"
         "- 링크는 제공된 저장소 및 evidence URL만 사용하세요.\n"
@@ -814,10 +813,12 @@ def generate_draft_engineering(commits: list[dict[str, Any]], pick_rank: int = 0
         "- 커밋 메시지·변경 파일·제공 문서에 없는 원인 추적 과정, 코드 식별자(상태 이름·함수명), "
         "변경 이유, 테스트 케이스 내용은 쓰지 마세요. 커밋에 나오지 않는 부분은 '커밋에는 나와 있지 "
         "않다'고 쓰세요. 이야기를 매끄럽게 만들려고 빈칸을 채우지 마세요.\n"
-        "- '어떤 문제가 있었는지 → 어떻게 원인을 찾았는지 → 어떻게 고쳤는지' 흐름으로 "
-        "구체적으로 쓰되, 커밋 메시지에 이미 있는 근거를 재구성하는 것이지 새로운 서사를 "
-        "지어내는 게 아닙니다.\n"
-        "- 마크다운 소제목(##)을 3~4개 사용하고, 1200~1800자 분량으로 작성하세요.\n"
+        # 원인 추적 '서사'를 요구하면 빈칸을 지어내 매번 탈락했다(2026-10-25). 커밋이 말하는
+        # 사실을 요약하는 형식으로 바꾼다.
+        "- '무엇이 문제였나 → 무엇을 바꿨나 → 남은 확인 사항' 순서로, 각 소제목 아래는 커밋 "
+        "메시지·변경 파일·문서에 적힌 내용을 요약하세요. 원인을 어떻게 찾았는지는 커밋에 적혀 "
+        "있을 때만 쓰세요.\n"
+        "- 마크다운 소제목(##)을 3개 사용하고, 700~1000자 분량으로 간결하게 작성하세요.\n"
         "- 모바일에서 스캔하기 쉽도록, 각 소제목 아래 문단은 2~3문장으로 짧게 끊으세요.\n"
         f"{url_instruction}"
         "- 마지막 줄에 'TITLE: '으로 시작하는 30자 이내의 한국어 제목을 별도로 제시하세요. "
@@ -1239,6 +1240,9 @@ def commit_and_push(path: Path) -> None:
 
 
 MAX_ATTEMPTS = 3
+# engineering은 보너스 슬롯이다. 3번 시도하면 일요일 하루 상한을 혼자 써서 til/news 대체가
+# 돌지 못했다(2026-10-25). 1번(+고쳐 쓰기)만 해 보고 바로 평소 유형으로 넘긴다.
+ENGINEERING_MAX_ATTEMPTS = 1
 
 
 def _fact_pass(result: dict[str, Any]) -> bool:
@@ -1298,13 +1302,14 @@ def _generate_valid_draft(content_type: str, sources: list[dict[str, Any]],
     """생성 -> 검증을 최대 MAX_ATTEMPTS번 시도한다. 모델이 가끔 한자를 섞어 쓰거나
     검수를 통과 못 하는 초안을 내는 경우가 있어, 한 번 실패했다고 그날 발행을
     포기하지 않고 다시 시도한다."""
-    for attempt in range(1, MAX_ATTEMPTS + 1):
+    attempts = ENGINEERING_MAX_ATTEMPTS if content_type == "engineering" else MAX_ATTEMPTS
+    for attempt in range(1, attempts + 1):
         if over_token_budget():
             used = today_usage()
             print(f"[DAILY_POST] 오늘 토큰 상한 도달({used['input'] + used['output']:,} / "
                   f"{DAILY_TOKEN_BUDGET:,}), 남은 시도 중단")
             return None
-        print(f"[DAILY_POST] 생성 시도 {attempt}/{MAX_ATTEMPTS}")
+        print(f"[DAILY_POST] 생성 시도 {attempt}/{attempts}")
         try:
             # 매 시도마다 다른 저장소/커밋을 골라본다 (같은 주제가 계속 실패하는 경우 대비).
             if content_type == "til":
@@ -1444,7 +1449,7 @@ def run(target_date: Optional[dt.date] = None) -> None:
             # 안정적인 소재가 있는 til/news로 대체한다 - engineering은 "있으면 좋은"
             # 보너스 슬롯이지, 발행 자체를 막을 이유가 아니다.
             why = why or ("이번 주 커밋 소재 없음" if not commits else
-                          "토큰 상한 도달" if over_token_budget() else f"{MAX_ATTEMPTS}번 시도 모두 검증 실패")
+                          "토큰 상한 도달" if over_token_budget() else f"검증 실패({ENGINEERING_MAX_ATTEMPTS}회 시도)")
             print(f"[DAILY_POST] 이번 주 개발기 {why}, 평소 유형으로 대체")
             fallback_from = f"engineering({why})"
             content_type = _fallback_content_type(target_date)
