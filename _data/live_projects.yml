@@ -91,6 +91,12 @@
   url: "https://bsjuuny2026.mycafe24.com/yourpick/"
   stack: ["Next.js", "React", "TypeScript", "Tailwind CSS"]
 
+- name: "몽글 배움월드"
+  category: "Kids & Education"
+  summary: "만 3~7세 아이를 위한 몽글 놀이 앱 모음입니다. 몽글놀이, 수학 놀이터, 영어 놀이터, 왜요? 카드, 퀴즈놀이터를 한 화면에서 고를 수 있습니다."
+  url: "https://bsjuuny2026.mycafe24.com/mongle/"
+  stack: ["HTML", "CSS", "JavaScript", "Web Speech API"]
+
 - name: "진료메모"
   category: "Healthcare"
   summary: "병원 방문 전에 증상과 질문을 빠짐없이 정리할 수 있도록 돕는 메모 도구입니다."
