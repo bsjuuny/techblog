@@ -100,3 +100,11 @@ class RuntimeIntegrationTests(unittest.TestCase):
         with mock.patch.object(runtime.sys, "stdout", None), mock.patch.object(runtime.sys, "stderr", None):
             self.assertEqual(runtime.child_stdio(),
                              {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL})
+
+    def test_git_calls_open_no_console_window_under_pythonw(self):
+        with mock.patch.object(subprocess, "run") as run:
+            runtime.git(self.local, "status")
+            daily._run(["git", "status"])
+        self.assertEqual(run.call_count, 2)
+        for call in run.call_args_list:
+            self.assertEqual(call.kwargs["creationflags"], runtime.NO_WINDOW)

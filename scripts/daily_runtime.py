@@ -7,9 +7,14 @@ import subprocess
 import sys
 
 
+# pythonw has no console, so each console child (git) would open its own visible window.
+NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+
 def git(root, *args):
     return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True,
-                          text=True, encoding="utf-8", timeout=120).stdout.strip()
+                          text=True, encoding="utf-8", timeout=120,
+                          creationflags=NO_WINDOW).stdout.strip()
 
 
 def fingerprint(root):

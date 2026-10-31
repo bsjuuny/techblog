@@ -458,6 +458,8 @@ def fetch_hackernews_top(n: int = 8) -> list[dict[str, Any]]:
 
 
 PROJECT_REPOS_ROOT = Path("C:/github")
+# pythonw has no console, so each git call would open its own visible window.
+_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 # techblog 자신은 제외한다 - 이 저장소의 커밋은 대부분 "글 추가"류라 개발기 소재로
 # 부적합하고, 파이프라인이 자기 자신을 소재로 삼으면 혼란스럽다.
 _ENGINEERING_EXCLUDED_REPOS = {"techblog"}
@@ -473,6 +475,7 @@ def _github_commit_url(repo_dir: Path, sha: str) -> str:
         remote = subprocess.run(
             ["git", "remote", "get-url", "origin"],
             cwd=repo_dir, check=True, capture_output=True, text=True, encoding="utf-8",
+            creationflags=_NO_WINDOW,
         ).stdout.strip()
     except Exception:
         return ""
@@ -497,6 +500,7 @@ def fetch_project_commits(days: int = 7, n: int = 8) -> list[dict[str, Any]]:
             log = subprocess.run(
                 ["git", "log", f"--since={since}", "--no-merges", "--format=%H%x1f%s%x1f%b%x1e"],
                 cwd=repo_dir, check=True, capture_output=True, text=True, encoding="utf-8",
+                creationflags=_NO_WINDOW,
             ).stdout
         except Exception:
             continue
@@ -515,6 +519,7 @@ def fetch_project_commits(days: int = 7, n: int = 8) -> list[dict[str, Any]]:
                 files_changed = subprocess.run(
                     ["git", "show", "--stat", "--format=", sha],
                     cwd=repo_dir, check=True, capture_output=True, text=True, encoding="utf-8",
+                    creationflags=_NO_WINDOW,
                 ).stdout.strip()
             except Exception:
                 files_changed = ""
@@ -1213,7 +1218,8 @@ _LOCK_PATH = REPO_ROOT / ".git" / "daily-post.lock"
 
 
 def _run(cmd: list[str]) -> None:
-    subprocess.run(cmd, cwd=REPO_ROOT, check=True, capture_output=True, text=True, encoding="utf-8")
+    subprocess.run(cmd, cwd=REPO_ROOT, check=True, capture_output=True, text=True, encoding="utf-8",
+                   creationflags=_NO_WINDOW)
 
 
 def commit_and_push(path: Path) -> None:
