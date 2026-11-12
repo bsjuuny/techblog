@@ -158,7 +158,7 @@ class GithubRadarPostTests(unittest.TestCase):
         original_slugify = daily._slugify
         with tempfile.TemporaryDirectory() as temp_dir:
             daily.POSTS_DIR = Path(temp_dir)
-            daily._slugify = lambda title, content_type: "github-radar-test"
+            daily._slugify = lambda title, content_type, hint="": "github-radar-test"
             try:
                 path = daily.write_post(
                     {
@@ -300,6 +300,48 @@ class RunRetryAndFallbackTests(unittest.TestCase):
         self.assertEqual(marker["fallbackFrom"], "github_radar(3번 시도 모두 검증 실패)")
 
 
+class SlugTest(unittest.TestCase):
+    """자동 글 주소: 시각 숫자 대신 소재 이름, 겹치면 번호, 소재가 없으면 예전 방식."""
+
+    def _slug(self, draft: dict, content_type: str, existing: tuple[str, ...] = ()) -> str:
+        original_posts_dir = daily.POSTS_DIR
+        with tempfile.TemporaryDirectory() as temp_dir:
+            daily.POSTS_DIR = Path(temp_dir)
+            for name in existing:
+                (Path(temp_dir) / name).write_text("---\n---\n", encoding="utf-8")
+            try:
+                return daily._slugify(draft.get("title", ""), content_type, daily._slug_hint(draft))
+            finally:
+                daily.POSTS_DIR = original_posts_dir
+
+    def test_til_uses_repo_name(self) -> None:
+        draft = {"title": "GestaltX로 보는 구조", "picked": {"title": "owner/GestaltX"}, "body": "", "sources": []}
+        self.assertEqual(self._slug(draft, "til"), "til-gestaltx")
+
+    def test_engineering_uses_local_repo(self) -> None:
+        draft = {"title": "개발기", "picked": {"repo": "risk-alert-bot", "title": "fix: x"}, "body": "", "sources": []}
+        self.assertEqual(self._slug(draft, "engineering"), "engineering-risk-alert-bot")
+
+    def test_news_uses_first_cited_english_source_and_limits_words(self) -> None:
+        url = "https://news.ycombinator.com/item?id=1"
+        draft = {"title": "오늘의 뉴스", "picked": None, "body": f"본문 [링크]({url})",
+                 "sources": [{"title": "Show HN: A tiny Rust database for embedded devices today", "url": url}]}
+        self.assertEqual(self._slug(draft, "news"), "news-show-hn-a-tiny-rust-database")
+
+    def test_collision_gets_number(self) -> None:
+        draft = {"title": "t", "picked": {"title": "o/GestaltX"}, "body": "", "sources": []}
+        slug = self._slug(draft, "til", existing=("2026-11-01-til-gestaltx.md", "2026-11-05-til-gestaltx-2.md"))
+        self.assertEqual(slug, "til-gestaltx-3")
+
+    def test_no_english_hint_falls_back_to_timestamp(self) -> None:
+        draft = {"title": "한국어 제목", "picked": None, "body": "", "sources": [{"title": "한국어 출처", "url": ""}]}
+        self.assertRegex(self._slug(draft, "github_radar"), r"^github-radar-\d{10}$")
+
+    def test_slug_prefix_still_matches_recent_title_filter(self) -> None:
+        draft = {"title": "t", "picked": {"title": "o/Repo"}, "body": "", "sources": []}
+        self.assertTrue(self._slug(draft, "github_radar").startswith("github-radar-"))
+
+
 class PostMetaTest(unittest.TestCase):
     """excerpt / 본문 H1 정규화 — 생성형 엔진이 인용할 근거가 되는 메타데이터."""
 
@@ -308,7 +350,7 @@ class PostMetaTest(unittest.TestCase):
         original_slugify = daily._slugify
         with tempfile.TemporaryDirectory() as temp_dir:
             daily.POSTS_DIR = Path(temp_dir)
-            daily._slugify = lambda title, content_type: "meta-test"
+            daily._slugify = lambda title, content_type, hint="": "meta-test"
             try:
                 path = daily.write_post(draft, content_type, dt.date(2026, 10, 6))
                 return path.read_text(encoding="utf-8")

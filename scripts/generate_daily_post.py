@@ -1102,9 +1102,35 @@ def _parse_checklist(text: str, pass_fields: list[str], scores: Optional[list[st
 
 # ── 7. 발행 ────────────────────────────────────────────────────────────
 
-def _slugify(title: str, content_type: str) -> str:
-    ascii_part = re.sub(r"[^a-zA-Z0-9]+", "-", content_type).strip("-")
-    return f"{ascii_part}-{int(time.time())}"
+SLUG_MAX_WORDS = 6
+SLUG_MAX_CHARS = 60
+
+
+def _slug_hint(draft: dict[str, Any]) -> str:
+    """주소에 쓸 영문 소재 이름. 제목은 한국어라 저장소 이름·출처 제목에서 가져온다."""
+    picked = draft.get("picked") or {}
+    hint = picked.get("repo") or (picked.get("title") or "").rsplit("/", 1)[-1]
+    if not hint:
+        cited = used_sources(draft.get("body", ""), draft.get("sources") or [])
+        hint = next((s.get("title") or "" for s in cited if re.search(r"[A-Za-z]", s.get("title") or "")), "")
+    return hint
+
+
+def _slugify(title: str, content_type: str, hint: str = "") -> str:
+    # 예전 글은 "news-1794328576"처럼 시각 숫자만 붙어 주소로 내용을 알 수 없었다(2026-11-12).
+    # 접두사(content_type)는 get_recent_titles가 유형 구분에 쓰므로 유지한다.
+    prefix = re.sub(r"[^a-zA-Z0-9]+", "-", content_type).strip("-")
+    words = re.sub(r"[^a-z0-9]+", " ", hint.lower()).split()[:SLUG_MAX_WORDS]
+    readable = "-".join(words)[:SLUG_MAX_CHARS].strip("-")
+    if not readable:
+        return f"{prefix}-{int(time.time())}"
+    slug = f"{prefix}-{readable}"
+    # permalink(/:categories/:title/)에 날짜가 없어 같은 소재가 다시 나오면 주소가 겹친다.
+    taken = {re.sub(r"^\d{4}-\d{2}-\d{2}-", "", f.stem) for f in POSTS_DIR.glob("*.md")}
+    candidate, n = slug, 2
+    while candidate in taken:
+        candidate, n = f"{slug}-{n}", n + 1
+    return candidate
 
 
 def get_recent_titles(
@@ -1140,7 +1166,7 @@ def get_recent_titles(
 
 def write_post(draft: dict[str, Any], content_type: str, target_date: dt.date) -> Path:
     now = dt.datetime.now()
-    slug = _slugify(draft["title"], content_type)
+    slug = _slugify(draft["title"], content_type, _slug_hint(draft))
     filename = f"{target_date.isoformat()}-{slug}.md"
     path = POSTS_DIR / filename
 

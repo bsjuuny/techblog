@@ -61,10 +61,13 @@ bundle exec jekyll serve --baseurl /techblog
 
 ## 검토 문서
 
-- `PORTFOLIO_REVIEW.md`
-- `CAREER_DATA_REVIEW.md`
-- `SECURITY_CONTENT_REVIEW.md`
-- `CONTENT_PLAN.md`
+사이트에 올라가지 않는 작업 문서는 `docs/notes/`에 둡니다(`_config.yml`의 `exclude`).
+
+- `docs/notes/PORTFOLIO_REVIEW.md`
+- `docs/notes/CAREER_DATA_REVIEW.md`
+- `docs/notes/SECURITY_CONTENT_REVIEW.md`
+- `docs/notes/CONTENT_PLAN.md`
+- `docs/notes/AI_REVIEW_LOOP_CONTENT_IDEAS.md`
 
 ## 본문 정보 박스
 

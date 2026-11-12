@@ -61,11 +61,9 @@ exclude:
   - .sass-cache
   - node_modules
   - Gemfile.lock
-  - PORTFOLIO_REVIEW.md
-  - CAREER_DATA_REVIEW.md
-  - SECURITY_CONTENT_REVIEW.md
-  - CONTENT_PLAN.md
-  - AI_REVIEW_LOOP_CONTENT_IDEAS.md
+  - CLAUDE.md
+  - docs
+  - scripts
 
 encoding: "utf-8"
 timezone: "Asia/Seoul"
