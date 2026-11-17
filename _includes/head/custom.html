@@ -118,10 +118,10 @@
     "name": {{ site.author.name | jsonify }},
     "alternateName": {{ site.author.alternate_names | jsonify }},
     "jobTitle": {{ site.author.job_title | jsonify }},
-    "description": {{ site.author.bio | jsonify }},
+    "description": {{ page.description | default: site.author.bio | jsonify }},
     "url": {{ geo_author_url | jsonify }},{% if site.author.avatar %}
     "image": {{ site.author.avatar | absolute_url | jsonify }},{% endif %}
-    "homeLocation": { "@type": "Place", "name": {{ site.author.location | jsonify }} },
+    "homeLocation": { "@type": "Country", "name": {{ site.author.country | jsonify }} },
     "knowsAbout": {{ site.author.knows_about | jsonify }},
     "sameAs": {{ site.social.links | jsonify }}
   }

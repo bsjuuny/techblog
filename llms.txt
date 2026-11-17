@@ -21,6 +21,7 @@ sitemap: false
 - 직무: {{ site.author.bio }}
 - 주요 기술: {{ site.author.knows_about | join: ', ' }}
 - 경력·프로젝트(이력서): {{ '/about/' | absolute_url }}
+- English profile: {{ '/about/#english-profile' | absolute_url }} — Baek Seungjun (David Baek), Senior Frontend Engineer & Full-Stack Web Developer, South Korea
 - GitHub: {{ site.social.links | join: ', ' }}
 
 ## 이 블로그에 대해

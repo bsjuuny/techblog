@@ -2,7 +2,7 @@ remote_theme: "mmistakes/minimal-mistakes"
 minimal_mistakes_skin: "default"
 
 locale: "ko-KR"
-title: "Frontend Engineering Notes · 백승준 (Baek Seungjun)"
+title: "Frontend Engineering Notes"
 title_separator: "|"
 name: "백승준"
 description: "React, TypeScript, Web Standards, Enterprise UI 개발 과정에서 얻은 문제 해결 경험을 기록하는 기술 블로그"
@@ -36,7 +36,9 @@ author:
   alternate_names:
     - "Baek Seungjun"
     - "David Baek"
-  job_title: "Senior Frontend Engineer"
+  job_title: "Senior Frontend Engineer & Full-Stack Web Developer"
+  # 구조화 데이터에는 도시 대신 나라만 싣는다(개인 거주지 공개 범위 최소화).
+  country: "South Korea"
   knows_about:
     - "React"
     - "TypeScript"
@@ -45,8 +47,17 @@ author:
     - "Angular"
     - "Java"
     - "Spring Boot"
+    - "HTML5"
+    - "CSS3"
+    - "jQuery"
+    - "Adobe Experience Manager (AEM)"
+    - "PostgreSQL"
+    - "REST API"
+    - "GraphQL"
     - "Web Standards"
-    - "Responsive Web"
+    - "Web Accessibility"
+    - "Responsive Web Design"
+    - "Enterprise UI"
     - "Enterprise Web Applications"
   links:
     - label: "GitHub"

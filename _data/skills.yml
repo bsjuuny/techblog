@@ -17,6 +17,7 @@ groups:
   - name: "Integration / Backend Experience"
     items:
       - "REST API"
+      - "GraphQL"
       - "Ajax / Axios"
       - "Java / Spring Boot"
       - "PostgreSQL"
