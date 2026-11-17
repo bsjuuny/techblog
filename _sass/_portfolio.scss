@@ -500,6 +500,7 @@ summary:focus-visible {
   display: grid;
   grid-template-columns: 5rem minmax(0, 1fr);
   gap: 0.75rem;
+  align-items: baseline;
   margin: 0.35rem 0;
 }
 
@@ -510,6 +511,8 @@ summary:focus-visible {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  /* The theme gives every dt margin-top: 1em, which pushed the label a line below its value. */
+  margin: 0;
 }
 
 .project-card dd,
