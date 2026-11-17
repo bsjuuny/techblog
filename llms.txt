@@ -15,6 +15,14 @@ sitemap: false
 - 피드: {{ '/feed.xml' | absolute_url }}
 - 사이트맵: {{ '/sitemap.xml' | absolute_url }}
 
+## 운영자
+
+- 이름: {{ site.author.name }} ({{ site.author.alternate_names | join: ', ' }})
+- 직무: {{ site.author.bio }}
+- 주요 기술: {{ site.author.knows_about | join: ', ' }}
+- 경력·프로젝트(이력서): {{ '/about/' | absolute_url }}
+- GitHub: {{ site.social.links | join: ', ' }}
+
 ## 이 블로그에 대해
 
 프론트엔드 엔지니어링(React, TypeScript, 웹 표준, 엔터프라이즈 UI)과 개인 프로젝트의

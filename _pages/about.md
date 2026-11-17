@@ -1,7 +1,7 @@
 ---
 permalink: /about/
-title: "About"
-description: "Senior Frontend Engineer 백승준의 전문 영역, 기술 스택, 경력 흐름과 프로젝트 경험"
+title: "About · 경력과 프로젝트"
+description: "Senior Frontend Engineer 백승준(Baek Seungjun, David Baek)의 전문 영역, 기술 스택, 경력 흐름과 프로젝트 경험"
 search: true
 last_modified_at: 2026-08-15T00:00:00+09:00
 toc: true
@@ -11,6 +11,10 @@ classes: wide portfolio-page
 ---
 
 <p class="page-kicker">ABOUT</p>
+
+<p class="about-identity"><strong>백승준 | Baek Seungjun (David Baek)</strong><br>
+Senior Frontend Engineer &amp; Full-Stack Web Developer<br>
+React · TypeScript · Java · Spring Boot · Enterprise Web Applications</p>
 
 16년 이상 Web/UI 개발을 수행하며 Web Standards와 퍼블리싱에서 JavaScript UI, SPA, Vue, Angular, React 기반 Enterprise Frontend로 업무 영역을 확장해 왔습니다.
 

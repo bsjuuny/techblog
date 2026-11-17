@@ -19,6 +19,11 @@
 {% endcomment %}
 {% assign geo_blog_id = site.url | append: site.baseurl | append: '/' %}
 {% assign geo_author_url = '/about/' | absolute_url %}
+{% assign geo_person_id = geo_author_url | append: '#person' %}
+{%- comment -%}
+  글·홈·About 이 모두 같은 @id(/about/#person)로 같은 인물을 가리키게 한다.
+  상세 속성(별칭·직무·전문영역)은 /about/ 의 ProfilePage 에만 싣고 나머지는 @id 로 참조한다.
+{%- endcomment -%}
 {% if page.image %}
   {% assign geo_image = page.image | absolute_url %}
 {% elsif site.og_image %}
@@ -59,12 +64,14 @@
   "image": {{ geo_image | jsonify }},{% endif %}
   "author": {
     "@type": "Person",
+    "@id": {{ geo_person_id | jsonify }},
     "name": {{ site.author.name | jsonify }},
     "url": {{ geo_author_url | jsonify }},
     "sameAs": {{ site.social.links | jsonify }}
   },
   "publisher": {
     "@type": "Person",
+    "@id": {{ geo_person_id | jsonify }},
     "name": {{ site.author.name | jsonify }},
     "url": {{ geo_blog_id | jsonify }}
   },
@@ -87,8 +94,35 @@
   "inLanguage": "ko-KR",
   "author": {
     "@type": "Person",
+    "@id": {{ geo_person_id | jsonify }},
     "name": {{ site.author.name | jsonify }},
     "url": {{ geo_author_url | jsonify }},
+    "sameAs": {{ site.social.links | jsonify }}
+  }
+}
+</script>
+{% elsif page.url == '/about/' %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ProfilePage",
+  "@id": {{ geo_author_url | jsonify }},
+  "url": {{ geo_author_url | jsonify }},
+  "name": {{ page.title | jsonify }},
+  "inLanguage": "ko-KR",{% if page.last_modified_at %}
+  "dateModified": {{ page.last_modified_at | date_to_xmlschema | jsonify }},{% endif %}
+  "isPartOf": { "@type": "Blog", "@id": {{ geo_blog_id | jsonify }} },
+  "mainEntity": {
+    "@type": "Person",
+    "@id": {{ geo_person_id | jsonify }},
+    "name": {{ site.author.name | jsonify }},
+    "alternateName": {{ site.author.alternate_names | jsonify }},
+    "jobTitle": {{ site.author.job_title | jsonify }},
+    "description": {{ site.author.bio | jsonify }},
+    "url": {{ geo_author_url | jsonify }},{% if site.author.avatar %}
+    "image": {{ site.author.avatar | absolute_url | jsonify }},{% endif %}
+    "homeLocation": { "@type": "Place", "name": {{ site.author.location | jsonify }} },
+    "knowsAbout": {{ site.author.knows_about | jsonify }},
     "sameAs": {{ site.social.links | jsonify }}
   }
 }

@@ -18,7 +18,7 @@ groups:
     items:
       - "REST API"
       - "Ajax / Axios"
-      - "Spring Boot"
+      - "Java / Spring Boot"
       - "PostgreSQL"
       - "AWS Elastic Beanstalk"
 
