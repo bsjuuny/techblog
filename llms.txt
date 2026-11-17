@@ -17,6 +17,7 @@ sitemap: false
 
 ## 운영자
 
+- 한 줄 소개: 풀스택 개발자 백승준 — React·TypeScript Frontend 중심, Java·Spring Boot 백엔드 기능 개발 참여 경험
 - 이름: {{ site.author.name }} ({{ site.author.alternate_names | join: ', ' }})
 - 직무: {{ site.author.bio }}
 - 주요 기술: {{ site.author.knows_about | join: ', ' }}

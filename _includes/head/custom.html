@@ -90,7 +90,7 @@
   "@id": {{ geo_blog_id | jsonify }},
   "name": {{ site.title | jsonify }},
   "url": {{ geo_blog_id | jsonify }},
-  "description": {{ site.description | jsonify }},
+  "description": {{ page.excerpt | default: site.description | strip_html | strip | jsonify }},
   "inLanguage": "ko-KR",
   "author": {
     "@type": "Person",

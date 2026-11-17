@@ -1,7 +1,7 @@
 ---
 permalink: /about/
-title: "백승준 (Baek Seungjun / David Baek) — Senior Frontend & Full-Stack Developer"
-description: "백승준(Baek Seungjun, David Baek)은 React·TypeScript 중심의 Senior Frontend Engineer이자 Java·Spring Boot 백엔드 개발 경험을 갖춘 Full-Stack Web Developer입니다. 2009년부터 금융·제조·엔터프라이즈 웹 애플리케이션을 개발·운영했습니다."
+title: "풀스택 개발자 백승준 (Baek Seungjun / David Baek) — Senior Frontend Engineer"
+description: "풀스택 개발자 백승준(Baek Seungjun, David Baek)은 React·TypeScript 중심의 Senior Frontend Engineer로, Java·Spring Boot 백엔드 기능 개발에 참여한 경험을 갖추고 있습니다. 2009년부터 금융·제조·엔터프라이즈 웹 애플리케이션을 개발·운영했습니다."
 search: true
 last_modified_at: 2026-11-17T00:00:00+09:00
 toc: true
@@ -13,11 +13,11 @@ classes: wide portfolio-page
 <p class="page-kicker">ABOUT</p>
 
 <p class="about-identity"><strong>백승준 | Baek Seungjun (David Baek)</strong><br>
-Senior Frontend Engineer &amp; Full-Stack Web Developer<br>
+Senior Frontend Engineer · 풀스택 개발자 (Full-Stack Web Developer)<br>
 React · TypeScript · Java · Spring Boot · Enterprise Web Applications<br>
 <a href="#english-profile" hreflang="en" lang="en">English profile</a> · <a href="https://github.com/bsjuuny" rel="me">GitHub: bsjuuny</a></p>
 
-백승준은 2009년부터 웹 애플리케이션 개발에 참여해 온 개발자로, React·TypeScript 중심의 Frontend Engineering과 Java·Spring Boot 기반 백엔드 개발 경험을 갖고 있습니다. 금융, 제조, 엔터프라이즈 환경에서 웹 애플리케이션을 개발하고 운영했으며, 웹 접근성, 반응형 UI, 재사용 가능한 컴포넌트 설계, API 연동과 운영 품질 개선에 중점을 둡니다.
+풀스택 개발자 백승준은 2009년부터 웹 애플리케이션 개발에 참여해 왔으며, React·TypeScript 중심의 Frontend Engineering과 Java·Spring Boot 기반 백엔드 기능 개발 참여 경험을 갖고 있습니다. 금융, 제조, 엔터프라이즈 환경에서 웹 애플리케이션을 개발하고 운영했으며, 웹 접근성, 반응형 UI, 재사용 가능한 컴포넌트 설계, API 연동과 운영 품질 개선에 중점을 둡니다.
 
 16년 이상 Web/UI 개발을 수행하며 Web Standards와 퍼블리싱에서 JavaScript UI, SPA, Vue, Angular, React 기반 Enterprise Frontend로 업무 영역을 확장해 왔습니다.
 
