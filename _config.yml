@@ -15,6 +15,8 @@ og_image: "/assets/images/og-default.png"
 masthead_title: "Frontend Engineering Notes"
 # Google Search Console 소유 확인(HTML 태그 방식). 테마 _includes/seo.html 이 meta 태그로 내보낸다. 지우면 소유 확인이 풀린다.
 google_site_verification: "No6ignJtIyH8EpU6R9qAMamcMlCrRLAzIjZC3juLqsw"
+# 네이버 서치어드바이저 소유 확인(HTML 태그 방식). 테마 seo.html 이 meta 태그로 내보낸다. 지우면 소유 확인이 풀린다.
+naver_site_verification: "59013cd056800214fed924323a1cd4a8cb1c0e3d"
 breadcrumbs: false
 words_per_minute: 200
 search: true
