@@ -278,7 +278,10 @@ def _normalize_text(text: str) -> str:
     # metadata is quoted with or without JSON's double quotes ("stars": 3572 vs stars: 3572).
     # README markdown is quoted as rendered text: links keep their text, emphasis marks go
     # ("[HarmonyOS](#harmonyos)" vs "HarmonyOS", "**Android version**", 2026-10-25).
-    text = _MD_LINK.sub(r"\1", text).replace("*", "")
+    # The auditor also keeps a link's brackets but drops its target ("[DeepSeek Harness]..."),
+    # and README notes are blockquotes ("> > We have adapted"), 2026-11-07 Radar.
+    text = _MD_LINK.sub(r"\1", text).replace("*", "").replace("[", "").replace("]", "")
+    text = re.sub(r"(?m)^[ \t]*(?:>[ \t]?)+", "", text)
     text = " ".join(text.translate(_TYPOGRAPHY).replace("`", "").replace('"', "").split())
     return re.sub(r" (?=[.,;:!?)\]])", "", text)
 
@@ -293,7 +296,9 @@ def quote_in_document(quote: str, document: str) -> bool:
     document = _normalize_text(document)
     if _metadata_pairs_in_document(quote, document):
         return True
-    parts = [p.strip() for p in re.split(r"\.{3}|\u2026", _normalize_text(quote))]
+    # Split before normalizing: normalizing drops the space in "product. ... We", and the
+    # split would then cut "product...." into "product" and ". We ..." (2026-11-07 Radar).
+    parts = [_normalize_text(p).strip() for p in re.split(r"\.{3}|\u2026", quote)]
     parts = [p for p in parts if p]
     if not parts or (len(parts) > 1 and any(len(p) < MIN_ELIDED_PART for p in parts)):
         return False

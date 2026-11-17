@@ -173,6 +173,21 @@ class SourceEvidenceTests(unittest.TestCase):
         self.assertTrue(evidence.quote_in_document("**Since v2.0 there is an Android version**", doc))
         self.assertFalse(evidence.quote_in_document("Since v2.0 there is an iOS version", doc))
 
+    def test_elided_quote_after_sentence_end_blockquote_and_bare_link_brackets(self):
+        # 2026-11-07 Radar: both excerpts were literal README text but failed to match.
+        doc = ("> [!IMPORTANT]\n> Research prototype for reference only, not an official product. More.\n>\n"
+               "> > We have adapted it for publication, so it is not identical.\n\n"
+               "dsh is a coding agent, packaged as a bundle for [DeepSeek Harness](https://x.dev). "
+               "It listens to GitHub and, optionally, Feishu.")
+        self.assertTrue(evidence.quote_in_document(
+            "Research prototype for reference only, not an official product. ... "
+            "We have adapted it for publication, so it is not identical", doc))
+        self.assertTrue(evidence.quote_in_document(
+            "packaged as a bundle for [DeepSeek Harness]... It listens to GitHub and, optionally, Feish", doc))
+        self.assertFalse(evidence.quote_in_document(
+            "Research prototype for reference only, not an official product. ... "
+            "We have adapted it for publication, so it is identical", doc))
+
     def test_readme_text_can_be_cited_via_repository_url(self):
         draft = {**self.draft(), "body": "모델 크기는 740M입니다. " + self.repo}
         audit = {"all_claims_supported": True, "claims": [
