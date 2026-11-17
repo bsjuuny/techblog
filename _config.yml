@@ -29,7 +29,7 @@ author:
   name: "백승준"
   avatar: "/assets/images/david.png"
   bio: "Senior Frontend Engineer & Full-Stack Web Developer"
-  location: "Seoul, Republic of Korea"
+  location: "South Korea"
   # 아래 세 값은 /about/ 의 Person JSON-LD 와 llms.txt 가 함께 쓴다.
   # 한 사람을 가리키는 표기(한글·로마자·영문 이름)를 묶어 검색·AI 에이전트가 같은 인물로 보게 한다.
   # About 화면에 보이는 내용과 어긋나는 값은 넣지 않는다.
