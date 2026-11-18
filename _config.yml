@@ -31,7 +31,7 @@ social:
 
 author:
   name: "백승준"
-  avatar: "/assets/images/david.png"
+  avatar: "/assets/images/profile.png"
   bio: "Senior Frontend Engineer & Full-Stack Web Developer"
   location: "South Korea"
   # 아래 세 값은 /about/ 의 Person JSON-LD 와 llms.txt 가 함께 쓴다.

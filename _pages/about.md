@@ -3,7 +3,7 @@ permalink: /about/
 title: "풀스택 개발자 백승준 &#124; David Baek Dev Notes"
 # 공유·검색 카드 이미지는 사이트 기본 이미지 대신 프로필 그림을 쓴다(테마 seo.html 이 header.og_image 를 og:image 로 사용, 화면 머리 이미지는 생기지 않음).
 header:
-  og_image: /assets/images/david.png
+  og_image: /assets/images/profile.png
   og_image_alt: "풀스택 개발자 백승준 프로필 그림"
 description: "풀스택 개발자 백승준(Baek Seungjun, David Baek)은 React·TypeScript 중심의 Senior Frontend Engineer로, Java·Spring Boot 백엔드 기능 개발에 참여한 경험을 갖추고 있습니다. 2009년부터 금융·제조·엔터프라이즈 웹 애플리케이션을 개발·운영했습니다."
 search: true
