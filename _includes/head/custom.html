@@ -108,7 +108,7 @@
   "@type": "ProfilePage",
   "@id": {{ geo_author_url | jsonify }},
   "url": {{ geo_author_url | jsonify }},
-  "name": {{ page.title | jsonify }},
+  "name": {{ page.title | replace: '&#124;', '|' | jsonify }},
   "inLanguage": "ko-KR",{% if page.last_modified_at %}
   "dateModified": {{ page.last_modified_at | date_to_xmlschema | jsonify }},{% endif %}
   "isPartOf": { "@type": "Blog", "@id": {{ geo_blog_id | jsonify }} },
