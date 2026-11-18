@@ -19,8 +19,8 @@ OUT_PATH = Path(__file__).resolve().parent.parent / "assets" / "images" / "og-de
 SIZE = (1200, 630)
 BG = "#0d1117"
 ACCENT = "#58a6ff"
-TITLE = "Frontend Engineering Notes"
-SUBTITLE = "React | TypeScript | Web Standards | Enterprise UI"
+TITLE = "David Baek Dev Notes"
+SUBTITLE = "Full-Stack Developer | React | TypeScript | Spring Boot"
 FOOTER = "bsjuuny.github.io/techblog"
 
 FONT_BOLD = "C:/Windows/Fonts/segoeuib.ttf"

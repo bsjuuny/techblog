@@ -57,7 +57,7 @@ for path in FORBIDDEN_PUBLIC_PATHS:
 
 config = (ROOT / "_config.yml").read_text(encoding="utf-8")
 for required_setting in [
-    'title: "Frontend Engineering Notes"',
+    'title: "David Baek Dev Notes"',
     'baseurl: "/techblog"',
     'url: "https://bsjuuny.github.io"',
     "jekyll-sitemap",

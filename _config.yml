@@ -2,7 +2,7 @@ remote_theme: "mmistakes/minimal-mistakes"
 minimal_mistakes_skin: "default"
 
 locale: "ko-KR"
-title: "Frontend Engineering Notes"
+title: "David Baek Dev Notes"
 title_separator: "|"
 name: "백승준"
 description: "React, TypeScript, Web Standards, Enterprise UI 개발 과정에서 얻은 문제 해결 경험을 기록하는 기술 블로그"
@@ -12,7 +12,7 @@ repository: "bsjuuny/techblog"
 # 글마다 대표 이미지가 없으므로, 공유·AI 카드에 쓰일 기본 OG 이미지를 사이트 전역으로 둔다
 # (생성: scripts/make_og_image.py). 테마 _includes/seo.html 이 og:image / twitter:image 로 쓴다.
 og_image: "/assets/images/og-default.png"
-masthead_title: "Frontend Engineering Notes"
+masthead_title: "David Baek Dev Notes"
 # Google Search Console 소유 확인(HTML 태그 방식). 테마 _includes/seo.html 이 meta 태그로 내보낸다. 지우면 소유 확인이 풀린다.
 google_site_verification: "No6ignJtIyH8EpU6R9qAMamcMlCrRLAzIjZC3juLqsw"
 # 네이버 서치어드바이저 소유 확인(HTML 태그 방식). 테마 seo.html 이 meta 태그로 내보낸다. 지우면 소유 확인이 풀린다.

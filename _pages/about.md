@@ -195,7 +195,7 @@ Details for each project are in [Selected Projects](#selected-projects) above an
 
 ### Technical Writing
 
-I write [Frontend Engineering Notes]({{ '/' | relative_url }}), a Korean-language blog on frontend architecture, UI engineering, and production troubleshooting. Some posts are generated automatically from public data and are labeled as such at the top of each post; those are not presented as personal work history.
+I write [David Baek Dev Notes]({{ '/' | relative_url }}), a Korean-language blog on frontend architecture, UI engineering, and production troubleshooting. Some posts are generated automatically from public data and are labeled as such at the top of each post; those are not presented as personal work history.
 
 ### GitHub Projects
 

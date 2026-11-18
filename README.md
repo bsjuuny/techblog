@@ -1,4 +1,4 @@
-# Frontend Engineering Notes
+# David Baek Dev Notes
 
 Frontend 개발 과정에서 마주친 문제, 기술 선택의 기준, 운영 경험을 정리하는 GitHub Pages 기술 블로그입니다. 경력과 프로젝트는 기술 글의 배경 정보로 분리해 제공합니다.
 
