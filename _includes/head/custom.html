@@ -147,3 +147,18 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 </script>
+
+{%- comment -%}
+  개발자 도구 콘솔 인사말. Chrome·Edge·Safari 는 프로필 그림을 함께 보여 주고,
+  Firefox 는 콘솔 스타일의 url() 을 막아 글자만 나온다. 실패해도 페이지에는 영향 없음.
+{%- endcomment -%}
+<script>
+(function () {
+  try {
+    var img = {{ '/assets/images/david.png' | absolute_url | jsonify }};
+    console.log('%c ', 'font-size:1px;line-height:120px;padding:60px 60px;background:url(' + img + ') center / contain no-repeat;');
+    console.log('%c풀스택 개발자 백승준 | David Baek', 'font:700 16px system-ui, sans-serif;color:#58a6ff;');
+    console.log('React · TypeScript · Java · Spring Boot\nAbout: ' + {{ '/about/' | absolute_url | jsonify }} + '\nGitHub: https://github.com/bsjuuny');
+  } catch (e) {}
+})();
+</script>
