@@ -1,6 +1,6 @@
 ---
 permalink: /about/
-title: "풀스택 개발자 백승준 (Baek Seungjun · David Baek)"
+title: "풀스택 개발자 백승준"
 # 공유·검색 카드 이미지는 사이트 기본 이미지 대신 프로필 그림을 쓴다(테마 seo.html 이 header.og_image 를 og:image 로 사용, 화면 머리 이미지는 생기지 않음).
 header:
   og_image: /assets/images/david.png
