@@ -243,13 +243,15 @@ def fetch_github_trending(
     *,
     days: int = 14,
     reference_date: Optional[dt.date] = None,
+    query: Optional[str] = None,
 ) -> list[dict[str, Any]]:
-    """GitHub 공식 Search API로 최근 인기 급상승 저장소를 가져온다 (무료, 키 불필요)."""
+    """GitHub 공식 Search API로 최근 인기 급상승 저장소를 가져온다 (무료, 키 불필요).
+    query 를 주면 기본 검색식(created:>since) 대신 그것을 쓴다."""
     reference_date = reference_date or dt.date.today()
     since = (reference_date - dt.timedelta(days=days)).isoformat()
     resp = requests.get(
         "https://api.github.com/search/repositories",
-        params={"q": f"created:>{since}", "sort": "stars", "order": "desc", "per_page": n},
+        params={"q": query or f"created:>{since}", "sort": "stars", "order": "desc", "per_page": n},
         headers={"Accept": "application/vnd.github+json"},
         timeout=20,
     )
@@ -386,6 +388,44 @@ def rank_github_radar_candidates(
             break
 
     return selected if len(selected) >= 3 else []
+
+
+# TIL 과 Radar 가 같은 후보군(최근 생성 저장소)을 쓰면 주중 TIL 이 토요일 Radar 의 좋은 후보를
+# 먼저 써 버리고, 남은 Radar 후보는 TIL 과 주제가 겹쳐 중복충돌로 탈락했다(2026-11-21·23).
+# 새로 뜬 저장소(생성 30일 이내)는 Radar 몫으로 두고, TIL 은 생성 30~180일이 지났고 최근 7일 안에
+# push 가 있는 인기 저장소에서 고른다. 이미 글에서 소개한 저장소는 60일간 뺀다(2026-11-23 사용자 선택).
+TIL_MIN_AGE_DAYS = 30
+TIL_MAX_AGE_DAYS = 180
+TIL_PUSHED_WITHIN_DAYS = 7
+
+
+def fetch_til_candidates(
+    reference_date: Optional[dt.date] = None,
+    n: int = 8,
+) -> list[dict[str, Any]]:
+    reference_date = reference_date or dt.date.today()
+    oldest = (reference_date - dt.timedelta(days=TIL_MAX_AGE_DAYS)).isoformat()
+    newest = (reference_date - dt.timedelta(days=TIL_MIN_AGE_DAYS)).isoformat()
+    pushed = (reference_date - dt.timedelta(days=TIL_PUSHED_WITHIN_DAYS)).isoformat()
+    sources = fetch_github_trending(
+        n=30,
+        reference_date=reference_date,
+        query=f"created:{oldest}..{newest} pushed:>{pushed}",
+    )
+    excluded = get_recent_featured_repo_urls()
+    excluded_names = {url.rsplit("/", 1)[-1] for url in excluded if "/" in url}
+    picked = []
+    for source in sources:
+        url = (source.get("url") or "").rstrip("/.").lower()
+        if not url or url in excluded or url.rsplit("/", 1)[-1] in excluded_names:
+            continue
+        if source.get("fork") or source.get("archived") or source.get("disabled"):
+            continue
+        picked.append(source)
+        if len(picked) >= n:
+            break
+    # 다 걸러지면 예전 방식(최근 생성 저장소)으로라도 소재를 낸다 — 그날을 건너뛰는 것보다 낫다.
+    return picked or fetch_github_trending(reference_date=reference_date)
 
 
 def fetch_github_radar_candidates(
@@ -625,7 +665,7 @@ def generate_draft_til(sources: list[dict[str, Any]], pick_rank: int = 0) -> dic
                     f"stars: {picked.get('stars')} | 생성일: {picked.get('created_at')} | URL: {picked['url']}")
     prompt = (
         "당신은 Frontend 개발자를 위한 기술 블로그 필자입니다. 아래는 실제 GitHub API에서 "
-        "가져온, 최근 생성되어 인기가 급상승 중인 오픈소스 저장소 목록입니다.\n\n"
+        "가져온, 최근에도 활발히 개발되고 있는 인기 오픈소스 저장소입니다.\n\n"
         f"{source_block}\n\n"
         f"이 중 '{picked['title']}'을(를) 주제로 개발자를 위한 기술 노트를 "
         "한국어로 작성하세요.\n\n"
@@ -1499,7 +1539,7 @@ def run(target_date: Optional[dt.date] = None) -> None:
 
     if draft is None:
         try:
-            sources = fetch_github_trending() if content_type == "til" else fetch_hackernews_top()
+            sources = fetch_til_candidates() if content_type == "til" else fetch_hackernews_top()
         except Exception as e:
             print(f"[DAILY_POST] 소재 수집 실패, 오늘은 건너뜀: {e}")
             write_watchdog_status_marker(False, f"소재 수집 실패: {e}", **marker)

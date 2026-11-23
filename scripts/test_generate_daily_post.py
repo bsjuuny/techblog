@@ -132,6 +132,49 @@ class GithubRadarRankingTests(unittest.TestCase):
         self.assertEqual(selected, [])
 
 
+class TilCandidateTests(unittest.TestCase):
+    def repo(self, full_name, **extra):
+        return {"title": full_name, "url": f"https://github.com/{full_name}", **extra}
+
+    def test_til_uses_older_active_repos_and_skips_featured(self) -> None:
+        queries = []
+
+        def fake_trending(n=8, *, days=14, reference_date=None, query=None):
+            queries.append(query)
+            return [
+                self.repo("newowner/GestaltX"),
+                self.repo("one/archived", archived=True),
+                self.repo("two/fresh-topic"),
+            ]
+
+        with mock.patch.multiple(
+            daily,
+            fetch_github_trending=fake_trending,
+            get_recent_featured_repo_urls=lambda: {"https://github.com/huamidev/gestaltx"},
+        ):
+            picked = daily.fetch_til_candidates(dt.date(2026, 11, 23))
+
+        self.assertEqual([p["title"] for p in picked], ["two/fresh-topic"])
+        self.assertEqual(queries, ["created:2026-05-27..2026-10-24 pushed:>2026-11-16"])
+
+    def test_til_falls_back_to_recent_repos_when_all_filtered(self) -> None:
+        queries = []
+
+        def fake_trending(n=8, *, days=14, reference_date=None, query=None):
+            queries.append(query)
+            return [] if query else [self.repo("new/repo")]
+
+        with mock.patch.multiple(
+            daily,
+            fetch_github_trending=fake_trending,
+            get_recent_featured_repo_urls=lambda: set(),
+        ):
+            picked = daily.fetch_til_candidates(dt.date(2026, 11, 23))
+
+        self.assertEqual([p["title"] for p in picked], ["new/repo"])
+        self.assertEqual(queries[1], None)
+
+
 class GithubRadarPostTests(unittest.TestCase):
     def test_recent_featured_urls_ignore_source_footer(self) -> None:
         original_posts_dir = daily.POSTS_DIR
@@ -257,7 +300,7 @@ class RunRetryAndFallbackTests(unittest.TestCase):
             generate_draft_github_radar=radar_draft,
             fetch_project_commits=lambda: commits or [],
             generate_draft_engineering=lambda _s, pick_rank=0: self.draft(),
-            fetch_github_trending=lambda: sources,
+            fetch_til_candidates=lambda: sources,
             fetch_hackernews_top=lambda: sources,
             generate_draft_til=lambda _s, pick_rank=0: self.draft(),
             generate_draft_news=lambda _s: self.draft(),
@@ -539,7 +582,7 @@ class CostControlTests(unittest.TestCase):
         # 실패해 런처가 생성을 시작하지 못한다(2026-10-25 수동 실행).
         with tempfile.TemporaryDirectory() as status_dir, mock.patch.multiple(
             daily, _STATUS_DIR=Path(status_dir), get_recent_titles=lambda *a, **k: [], DAILY_TOKEN_BUDGET=150_000,
-            fetch_github_trending=lambda: [self.picked()], fetch_hackernews_top=lambda: [self.picked()],
+            fetch_til_candidates=lambda: [self.picked()], fetch_hackernews_top=lambda: [self.picked()],
             generate_draft_til=mock.Mock(side_effect=AssertionError("must not generate")),
             generate_draft_news=mock.Mock(side_effect=AssertionError("must not generate")),
         ), contextlib.redirect_stdout(out):
