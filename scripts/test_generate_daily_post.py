@@ -98,6 +98,25 @@ class GithubRadarRankingTests(unittest.TestCase):
         )
         self.assertTrue(all("stars_per_day" in item for item in selected))
 
+    def test_ranking_excludes_featured_repo_after_owner_rename(self) -> None:
+        sources = [
+            self.source("GestaltX", owner="huami1314", language="Swift", stars=900, age_days=3),
+            self.source("alpha", owner="one", language="Python", stars=800, age_days=3),
+            self.source("beta", owner="two", language="Rust", stars=700, age_days=4),
+            self.source("gamma", owner="three", language="Go", stars=600, age_days=4),
+        ]
+
+        selected = daily.rank_github_radar_candidates(
+            sources,
+            reference_date=self.reference_date,
+            excluded_urls={"https://github.com/huamidev/GestaltX"},
+        )
+
+        self.assertEqual(
+            [item["title"] for item in selected],
+            ["one/alpha", "two/beta", "three/gamma"],
+        )
+
     def test_ranking_returns_empty_when_fewer_than_three_survive(self) -> None:
         sources = [
             self.source("too-new", owner="one", language="Python", stars=900, age_days=1),

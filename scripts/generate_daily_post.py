@@ -327,6 +327,10 @@ def rank_github_radar_candidates(
     """
     reference_date = reference_date or dt.date.today()
     excluded = {url.rstrip("/.").lower() for url in (excluded_urls or set())}
+    # 저장소 주인 이름이 바뀌면(예: huamidev/GestaltX → huami1314/GestaltX) GitHub 는 옛 URL 을
+    # 새 URL 로 넘겨 주지만 URL 문자열 비교로는 다른 저장소로 보인다. 2026-11-21 Radar 가
+    # 이미 TIL 로 다룬 GestaltX 를 다시 골라 중복충돌로 3번 모두 탈락했다. 저장소 이름으로도 막는다.
+    excluded_names = {url.rsplit("/", 1)[-1] for url in excluded if "/" in url}
     scored: list[dict[str, Any]] = []
     seen_urls: set[str] = set()
 
@@ -334,6 +338,8 @@ def rank_github_radar_candidates(
         url = (source.get("url") or "").rstrip("/.")
         normalized_url = url.lower()
         if not url or normalized_url in seen_urls or normalized_url in excluded:
+            continue
+        if normalized_url.rsplit("/", 1)[-1] in excluded_names:
             continue
         seen_urls.add(normalized_url)
         if source.get("fork") or source.get("archived") or source.get("disabled"):
