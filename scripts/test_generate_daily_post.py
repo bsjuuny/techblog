@@ -166,11 +166,16 @@ class GithubRadarPostTests(unittest.TestCase):
             try:
                 all_titles = daily.get_recent_titles()
                 non_radar = daily.get_recent_titles(exclude_content_type="github_radar")
+                (daily.POSTS_DIR / f"{today}-til-3.md").write_text(
+                    '---\ntitle: "저장소 살펴보기"\n---\n', encoding="utf-8"
+                )
+                radar_dup_titles = daily.get_recent_titles(exclude_content_type=("github_radar", "til"))
             finally:
                 daily.POSTS_DIR = original_posts_dir
 
         self.assertEqual(sorted(all_titles), ["오늘의 기술 뉴스", "이번 주 GitHub Radar 5선"])
         self.assertEqual(non_radar, ["오늘의 기술 뉴스"])
+        self.assertEqual(radar_dup_titles, ["오늘의 기술 뉴스"])
 
     def test_write_post_uses_radar_category_and_tags(self) -> None:
         original_posts_dir = daily.POSTS_DIR
@@ -273,7 +278,7 @@ class RunRetryAndFallbackTests(unittest.TestCase):
             facts=[self.PASS_FACT],
         )
         self.assertEqual(calls["radar"], 3)
-        self.assertIn("github_radar", calls["excluded"])
+        self.assertIn(("github_radar", "til"), calls["excluded"])
         self.assertIn("한자 오염 감지", log)
         self.assertIn("링크 검증 실패", log)
         self.assertEqual(marker["published"], True)
