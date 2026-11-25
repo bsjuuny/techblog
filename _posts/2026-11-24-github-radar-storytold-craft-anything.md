@@ -1,5 +1,5 @@
 ---
-title: "이번 주 GitHub Radar 다섯 저장소 검토 메모"
+title: "앱 복제·Rust 재작성·스위치2 에뮬 등 신규 저장소 5곳"
 date: 2026-11-24 08:43:51 +0900
 categories:
   - github-radar
