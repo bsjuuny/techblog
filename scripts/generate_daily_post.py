@@ -1461,14 +1461,16 @@ _STATUS_DIR = Path("C:/github/scheduler/status")
 
 
 def write_watchdog_status_marker(published: bool, reason: str, *,
-                                 content_type: str = "", fallback_from: str = "") -> None:
+                                 content_type: str = "", fallback_from: str = "",
+                                 outcome: str = "") -> None:
     # pm2 로그는 10일치만 남는다. 토요일 Radar/일요일 개발기가 실제로 나갔는지, 평소 유형으로
     # 대체됐는지는 이 파일에 남겨 두어야 나중에도 확인할 수 있다(watchdog은 존재 여부만 본다).
     try:
         _STATUS_DIR.mkdir(parents=True, exist_ok=True)
         date_key = dt.date.today().strftime("%Y%m%d")
         marker = {"ranAt": dt.datetime.now().isoformat(), "published": published, "reason": reason,
-                  "runtime": json.loads(os.environ.get("TECHBLOG_RUNTIME", "null"))}
+                  "runtime": json.loads(os.environ.get("TECHBLOG_RUNTIME", "null")),
+                  "outcome": outcome or ("published" if published else "skipped")}
         marker["tokens"] = today_usage()
         if content_type:
             marker["contentType"] = content_type
@@ -1484,7 +1486,7 @@ def write_watchdog_status_marker(published: bool, reason: str, *,
 
 # ── 메인 ───────────────────────────────────────────────────────────────
 
-def run(target_date: Optional[dt.date] = None) -> None:
+def run(target_date: Optional[dt.date] = None) -> str:
     target_date = target_date or dt.date.today()
     content_type = pick_content_type(target_date)
     print(f"[DAILY_POST] {target_date.isoformat()} 콘텐츠 유형: {content_type}")
@@ -1546,14 +1548,14 @@ def run(target_date: Optional[dt.date] = None) -> None:
         except Exception as e:
             print(f"[DAILY_POST] 소재 수집 실패, 오늘은 건너뜀: {e}")
             write_watchdog_status_marker(False, f"소재 수집 실패: {e}", **marker)
-            return
+            return "skipped"
         draft = _generate_valid_draft(content_type, sources, recent_titles)
 
     if draft is None:
         why = "토큰 상한 도달" if over_token_budget() else f"{MAX_ATTEMPTS}번 시도 모두 검증 실패"
         print(f"[DAILY_POST] {why}, 오늘은 발행을 건너뜀")
         write_watchdog_status_marker(False, why, **marker)
-        return
+        return "skipped"
 
     path = write_post(draft, content_type, target_date)
     print(f"[DAILY_POST] 글 작성 완료: {path}")
@@ -1562,12 +1564,18 @@ def run(target_date: Optional[dt.date] = None) -> None:
         commit_and_push(path)
         print("[DAILY_POST] git commit/push 완료 — 발행됨")
         write_watchdog_status_marker(True, "발행 완료", **marker)
+        return "published"
     except Exception as e:
         print(f"[DAILY_POST] git 발행 실패: {e}")
-        write_watchdog_status_marker(False, f"git 발행 실패: {e}", **marker)
+        write_watchdog_status_marker(False, f"git 발행 실패: {e}", outcome="failed", **marker)
+        return "failed"
 
 
 if __name__ == "__main__":
-    run()
+    outcome = run()
+    # daily_runtime forwards the environment through its locked worker. The
+    # scheduler opts in; ordinary interactive invocations keep their old codes.
+    if os.environ.get("TECHBLOG_SCHEDULER_OUTCOME") == "1":
+        raise SystemExit({"published": 0, "skipped": 10, "failed": 1}[outcome])
 
 
